@@ -17,4 +17,12 @@ Oppretter funksjoner her også. Disse utføres ved hjelp av Goroutine. Det er ba
  Fungerer!!  Også med minus 1.
 
 go:
+Vi brukte select med cases. Lagde fire channels for sending av inc, dec, read og quit, eget signal for hver handling. Lagde en server som kan endre på i. Funksjonene signaliserer riktig handling med å sende et signal over riktig kanal. Har lagt til en quit-lytte-funksjonalitet som sender over egen quit-kanal. Denne gjør at vi venter på at decrement og increment gjør seg ferdig. Select går alltid tilbake der den var hvis den blir avbrutt midt i en handling. Dette gjør at vi alltid kommer til null, fordi alle oppgaver blir utført. 
 
+5 Bounded buffer
+c:
+Initialiserte to semaforer for bufferen som skal lages. Disse har initialverdi lik size og 0, altså en teller opp, og en teller ned. Disse brukes for å sørge for fornufit push- og pop-funksjonalitet for stacken. Semaforer er counters som fungerer slik:
+- post increments by one
+- wait decrements semaphore by one
+- cannot decrement if semaphore is zero -> blocks
+La til mutex rundt push og pop, for å sørge for at disse operasjonene skjer fullstendig/ uten avbrytelse.
