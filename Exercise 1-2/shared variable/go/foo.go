@@ -44,7 +44,7 @@ func main() {
     go incrementing();
     go decrementing();
 
-    while( done <= ch2 && done <= ch3 == 0){
+    for(done <= ch2 && done <= ch3 == 0){
         select{
         case inc <= ch1:
             i++
