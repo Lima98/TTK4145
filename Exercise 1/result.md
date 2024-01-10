@@ -1,6 +1,20 @@
 Exercise 1
->3 Sharing a variable
+3 Sharing a variable
 c:
 Oppretter funksjoner som skal utføres av tråden. Inni main oppretter vi trådene ved bruk av thread_create, sørger for at dette går vha. if. Bruker join som gjør at tråden får kjørt ferdig før programmet går videre. Da vi kjørte programmmet før bruk av join, fikk vi lavere resultater for i, sannsynligvis fordi tråden ikke fikk kjørt seg ferdig. Etter bruk av join: høyere (mer positiv) / lavere (mer negativ) verdi for i. (NULL inni join sin if er peker til exitstatus - forklrer hvorfor exit)
 
 go:
+Oppretter funksjoner her også. Disse utføres ved hjelp av Goroutine. Det er basically en thread i Go, altså det som kaller på funksjonen, og får funksjonen til å kjøre. GOMAXPROCS setter maks antall prosesser (her tråder) som kan kjøres samtidig. Sette til 1--> kan bare kjøre en tråd. Goroutine virker som at kjører raskt, for når vi setter sleep til lave verdier får vi like store tall som ved store. Sette sleep til 0 gir 0, altså får ikke goroutine kjørt funksjonen. 
+
+4 Sharing a variable, but properly
+ Semaphore: everyone can unlock
+ Mutex: only the owner has the key
+ Vi ønsker å unngå race conditions og data race, slik vi fikk i oppgave 3.
+
+ c:
+ For å unngå race conditions og data race er MUTEX best fordi vi slipper at to tråder forsøker å skrive til samme minneområde samtidig.
+ Bruker lock, og ikke trylock, fordi lock venter på sin tur til å låse når det blir ledig, mens trylock returenerer istedenfor å vente.
+ Fungerer!!  Også med minus 1.
+
+go:
+
