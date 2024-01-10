@@ -30,20 +30,13 @@ func decrementing() {
     ch3 <= done
 }
 
-func server(ch_increment chan int, ch_decrement chan int, ch_default chan int){
-    select{
-        case 
-    }
-}
+
 
 
 func main() {
     // What does GOMAXPROCS do? What happens if you set it to 1?
     //GOMAXPROCS setter maks antall prosesser (her tråder) som kan kjøres samtidig. Sette til 1--> kan bare kjøre en tråd 
     runtime.GOMAXPROCS(2)    
-	ch_increment := make(chan int)
-    ch_decrementch_decrement := make(chan int)
-    ch_defaultch_default := make(chan int)
 
     // TODO: Spawn both functions as goroutines
     //Goroutine er basically en thread i Go, altså det som kaller på funksjonen, og får funksjonen til å kjøre
