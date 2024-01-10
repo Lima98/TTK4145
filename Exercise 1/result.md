@@ -26,3 +26,6 @@ c:
 - wait decrements semaphore by one
 - cannot decrement if semaphore is zero -> blocks
 La til mutex rundt push og pop, for å sørge for at disse operasjonene skjer fullstendig/ uten avbrytelse.
+
+go:
+Bruker Channel buffer. Denne introduserer en slgs "kanalkapasitet", altså hvor mange elementer som kan være "på kanalen" til enhver tid. Det gjør at vi kan fortsette å skrive til kanalen uten å tømme den, så lenge kapasiteten ikke er fyllt opp. Bare implementere make med et ekstra tall. 
