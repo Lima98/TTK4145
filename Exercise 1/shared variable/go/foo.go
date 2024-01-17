@@ -30,7 +30,7 @@ import (
  }
 
  func decrementing(ch chan int, quit chan int){
-    for j := 0; j < 1000000; j++ {
+    for j := 0; j < 1000001; j++ {
         ch <- 1        
   }
     quit<-1
