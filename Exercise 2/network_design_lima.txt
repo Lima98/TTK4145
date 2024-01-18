@@ -1,0 +1,89 @@
+GUARANTEES ABOUT ELEVATORS
+
+What should happen if one of the nodes loses its network connection?
+-Hopefully all data pertaining to the status of the elevator pre-com-loss will have been communicated
+ to the other elevators so a restart should be a good solution. Or maybe we can just try to re-establish connection.
+
+What should happen if one of the nodes loses power for a brief moment?
+-There should be check intermittently to see if all the nodes in the network have the same situational awareness.
+
+What should happen if some unforeseen event causes the elevator to never reach its destination, but communication remains intact?
+-Maybe some kind of timer should be in place for all the orders and if an order is never reached it should be re-scheduled to another
+node to take over. A schedule list should not remove an order until it has been met, meaning it is not met when one elevator agrees
+on taking on the job.
+
+GUARANTEES ABOUT ORDERS
+
+Do all your nodes need to "agree" on a call for it to be accepted? In that case, how is a faulty node handled?
+-I am not really sure how to read this question, I dont see it making any sense.
+
+How do you handle losing packets between the nodes?
+-As mentioned earlier, ack-messages could be a good solution to this.
+
+Do you share the entire state of the current calls, or just the changes as they occur?
+-It might be benefitial to share the entire state every now and then to make sure that some data hasnt been corrupted or similar.
+
+For either one: What should happen when an elevator re-joins after having been offline?
+-It should send an update of what is has done in the meantime, and should request a full status update.
+
+TOPOLOGY
+
+What kind of network topology do you want to implement? Peer to peer? Master slave? Circle? Something else?
+-I think a peer to peer will be a good solution here. It is slighly less scalable, but I dont see that being an
+acutal problem for a elevator system.
+
+In the case of a master-slave configuration:
+Do you have only one program, or two (a "master" executable and a "slave")?@
+-Should have one program so that any slave can take over in case the master dies, so all nodes need to know
+how to act as the master.
+
+How do you handle a master node disconnecting?
+-As mentioned below, we need a hierarchy for who takes over as the new master interim.
+
+Is a slave becoming a master a part of the network module?
+-Yes this should be a part of the network module.
+
+
+In the case of a peer-to-peer configuration:
+
+Who decides the order assignment?
+-If all the nodes run the same algorithm then it could in theory be done by all of them. For this to work they need to have the same data at all times.
+This can be troublesome, so we need a strict chronological control of the orders. I think however it would be benefitial to have a single node handle it and distribute,
+but then we kind of have a master in the system, which is not ideal.
+
+What happens if someone presses the same button on two panels at once? Is this even a problem?
+-It could maybe be added in the queue twice, so a simple check for an idential order right after another should just be ignored. I dont think this should be a problem.
+Maybe the check for when an order is done will check the order list until the next unmet order shows up. Then it will remove any and all duplicates.
+
+TECHNICAL IMPLEMENTATION
+
+Protocols: TCP, UDP, or something else?
+If you are using TCP: How do you know who connects to who?
+-This should probably be done in a slave-master type fashion maybe.
+
+Do you need an initialization phase to set up all the connections?
+-Yes as a node boots it should do some preliminary setup before it starts acting.
+
+If you are using UDP broadcast: How do you differentiate between messages from different nodes?
+-The message needs a "from" identifier as a part of the message.
+
+If you are using a library or language feature to do the heavy lifting - what is it, and does it satisfy your needs?
+-I think we get some handed out code to do this, we have not yet taken a look at this so it is not relevant yet.
+
+Do you want to build the necessary reliability into the module, or handle that at a higher level?
+-Hopefully it is already in the module. But we might need to build some reliability to handle specific incidences.
+
+Is detection (and handling) of things like lost messages or lost nodes a part of the network module?
+-I do not know, but it should be?
+
+How will you pack and unpack (serialize) data?
+-Hmmm, I am not sure about this, but we should make a message type thing to make this work.
+
+Do you use structs, classes, tuples, lists, ...?
+-Maybe we use lists? I am not sure, sturcts are very nice and readable to that might be a good idea.
+
+JSON, XML, plain strings, or just plain memcpy?
+-I do not know enough about this to make a good answer.
+
+Is serialization a part of the network module?
+- That I do not know.
