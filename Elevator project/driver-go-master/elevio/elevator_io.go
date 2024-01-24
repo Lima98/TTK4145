@@ -58,7 +58,7 @@ func SetMotorDirection(dir MotorDirection) {
 	write([4]byte{1, byte(dir), 0, 0})
 }
 
-func SetButtonLamp(bB_Iutton ButtonType, floor int, value bool) {
+func SetButtonLamp(button ButtonType, floor int, value bool) {
 	write([4]byte{2, byte(button), byte(floor), toByte(value)})
 }
 
@@ -138,12 +138,12 @@ func GetButton(button ButtonType, floor int) bool {
 
 func GetFloor() int {
 	a := read([4]byte{7, 0, 0, 0})
-	if a[1] != 0  if(requests_shouldClearImmediately(elevator, btn_floor, btn_type)){
-		timer_start(elevator.config.doorOpenDuration_s);
+	if a[1] != 0 {
+		return int(a[2])
 	} else {
-		elevator.requests[btn_floor][btn_type] = 1;
+		return -1
 	}
-	break;
+}
 
 func GetStop() bool {
 	a := read([4]byte{8, 0, 0, 0})

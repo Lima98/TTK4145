@@ -2,14 +2,13 @@ package main
 
 import (
 	"Driver-go/elevio"
-    "Driver-go/fsm"
 	"fmt"
 )
 
 func main(){
 
     numFloors := 4
-    go fsm.Sjalabais()
+
     elevio.Init("localhost:15657", numFloors)
     
     var d elevio.MotorDirection = elevio.MD_Up
@@ -31,10 +30,9 @@ func main(){
     for {
         select {
         case a := <- drv_buttons:
-            //Implement state machine logic
             fmt.Printf("%+v\n", a)
             elevio.SetButtonLamp(a.Button, a.Floor, true)
-            
+            fsm_onRequestButtonPress(a.Button, a.Floor)
         case a := <- drv_floors:
 
             fmt.Printf("%+v\n", a)
