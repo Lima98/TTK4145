@@ -2,13 +2,14 @@ package main
 
 import (
 	"Driver-go/elevio"
+    "Driver-go/fsm"
 	"fmt"
 )
 
 func main(){
 
     numFloors := 4
-
+    go fsm.Sjalabais()
     elevio.Init("localhost:15657", numFloors)
     
     var d elevio.MotorDirection = elevio.MD_Up
@@ -18,7 +19,9 @@ func main(){
     drv_floors  := make(chan int)
     drv_obstr   := make(chan bool)
     drv_stop    := make(chan bool)    
-    
+
+
+
     go elevio.PollButtons(drv_buttons)
     go elevio.PollFloorSensor(drv_floors)
     go elevio.PollObstructionSwitch(drv_obstr)
@@ -28,10 +31,12 @@ func main(){
     for {
         select {
         case a := <- drv_buttons:
+            //Implement state machine logic
             fmt.Printf("%+v\n", a)
             elevio.SetButtonLamp(a.Button, a.Floor, true)
             
         case a := <- drv_floors:
+
             fmt.Printf("%+v\n", a)
             if a == numFloors-1 {
                 d = elevio.MD_Down
