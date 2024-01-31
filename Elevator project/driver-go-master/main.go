@@ -1,9 +1,7 @@
 package main
 
-import (
-	"Driver-go/elevio"
-	"fmt"
-)
+import "Driver-go/elevio"
+import "fmt"
 
 func main(){
 
@@ -18,9 +16,7 @@ func main(){
     drv_floors  := make(chan int)
     drv_obstr   := make(chan bool)
     drv_stop    := make(chan bool)    
-
-
-
+    
     go elevio.PollButtons(drv_buttons)
     go elevio.PollFloorSensor(drv_floors)
     go elevio.PollObstructionSwitch(drv_obstr)
@@ -32,9 +28,8 @@ func main(){
         case a := <- drv_buttons:
             fmt.Printf("%+v\n", a)
             elevio.SetButtonLamp(a.Button, a.Floor, true)
-            fsm_onRequestButtonPress(a.Button, a.Floor)
+            
         case a := <- drv_floors:
-
             fmt.Printf("%+v\n", a)
             if a == numFloors-1 {
                 d = elevio.MD_Down
