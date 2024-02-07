@@ -2,7 +2,6 @@ package main
 
 import (
 	"Elevator_project/master/driver-go/elevio"
-    "Elevator_project/master/fsm"
 	"fmt"
 )
 
@@ -24,7 +23,7 @@ func main(){
     go elevio.PollFloorSensor(drv_floors)
     go elevio.PollObstructionSwitch(drv_obstr)
     go elevio.PollStopButton(drv_stop)
-    
+    //masse masse kode
     
     for {
         select{
