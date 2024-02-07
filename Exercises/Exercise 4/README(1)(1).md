@@ -17,6 +17,7 @@ The process pair mechanism on its own forms one of the three parts of making bug
 Some engineering questions, before you continue:
 
 - Why would we aim to detect success in results, instead of the more classical way of detecting errors/failures?
+If we use the classical way of detecting errors, there is no way of detecting errors we dont know about beforehand, for example cosmic rays. 
 - Why would we want to self-terminate, instead of handling the error immediately in the "primary" (as opposed to deferring it to the backup as it "spins up")?
 - Is there any reason to prefer a process pair style, as opposed to making a separate supervisor-like program whose sole purpose is to restart the main program?
 
