@@ -1,10 +1,12 @@
 package main
 
 import (
-	"Elevator_project/master/driver-go/elevio"
-    "Elevator_project/master/fsm"
+	"Elevator_project/driver-go/elevio"
+	fsm "Elevator_project/fsm"
 	"fmt"
 )
+
+
 
 func main(){
 
@@ -24,11 +26,12 @@ func main(){
     go elevio.PollFloorSensor(drv_floors)
     go elevio.PollObstructionSwitch(drv_obstr)
     go elevio.PollStopButton(drv_stop)
-    
-    
+    //masse masse kode
+
     for {
         select{
         case a := <- drv_buttons:
+            fsm.Fsm_test(a.Floor,a.Button)
             if a.Button == 1 {
                 fmt.Println("Button 1 pressed")
                 elevio.SetMotorDirection(elevio.MD_Down)
