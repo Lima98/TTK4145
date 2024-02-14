@@ -3,10 +3,11 @@ package requests
 import (
 	elevio "Elevator_project/driver-go/elevio"
 	elev "Elevator_project/elevator"
+	"fmt"
 )
 
 
-type DirnBehaviourPair struct {
+type DirBehaviourPair struct {
 	Dir			elevio.MotorDirection
 	Behaviour 	elev.ElevatorBehaviour
 }
@@ -42,43 +43,43 @@ func Requests_here(e elev.Elevator) bool{
 	return false
 }
 
-func Requests_chooseDirection(e elev.Elevator) DirnBehaviourPair{
+func Requests_chooseDirection(e elev.Elevator) DirBehaviourPair{
 		switch e.Dir {
 		case elevio.MD_Up:
 			switch {
 			case Requests_above(e):
-				return DirnBehaviourPair{elevio.MD_Up, elev.EB_Moving}
+				return DirBehaviourPair{elevio.MD_Up, elev.EB_Moving}
 			case Requests_here(e):
-				return DirnBehaviourPair{elevio.MD_Down, elev.EB_DoorOpen}
+				return DirBehaviourPair{elevio.MD_Down, elev.EB_DoorOpen}
 			case Requests_below(e):
-				return DirnBehaviourPair{elevio.MD_Down, elev.EB_Moving}
+				return DirBehaviourPair{elevio.MD_Down, elev.EB_Moving}
 			default:
-				return DirnBehaviourPair{elevio.MD_Stop, elev.EB_Idle}
+				return DirBehaviourPair{elevio.MD_Stop, elev.EB_Idle}
 			}
 		case elevio.MD_Down:
 			switch {
 			case Requests_below(e):
-				return DirnBehaviourPair{elevio.MD_Down, elev.EB_Moving}
+				return DirBehaviourPair{elevio.MD_Down, elev.EB_Moving}
 			case Requests_here(e):
-				return DirnBehaviourPair{elevio.MD_Up, elev.EB_DoorOpen}
+				return DirBehaviourPair{elevio.MD_Up, elev.EB_DoorOpen}
 			case Requests_above(e):
-				return DirnBehaviourPair{elevio.MD_Up, elev.EB_Moving}
+				return DirBehaviourPair{elevio.MD_Up, elev.EB_Moving}
 			default:
-				return DirnBehaviourPair{elevio.MD_Stop, elev.EB_Idle}
+				return DirBehaviourPair{elevio.MD_Stop, elev.EB_Idle}
 			}
 		case elevio.MD_Stop:
 			switch {
 			case Requests_here(e):
-				return DirnBehaviourPair{elevio.MD_Stop, elev.EB_DoorOpen}
+				return DirBehaviourPair{elevio.MD_Stop, elev.EB_DoorOpen}
 			case Requests_above(e):
-				return DirnBehaviourPair{elevio.MD_Up, elev.EB_Moving}
+				return DirBehaviourPair{elevio.MD_Up, elev.EB_Moving}
 			case Requests_below(e):
-				return DirnBehaviourPair{elevio.MD_Down, elev.EB_Moving}
+				return DirBehaviourPair{elevio.MD_Down, elev.EB_Moving}
 			default:
-				return DirnBehaviourPair{elevio.MD_Stop, elev.EB_Idle}
+				return DirBehaviourPair{elevio.MD_Stop, elev.EB_Idle}
 			}
 		default:
-			return DirnBehaviourPair{elevio.MD_Stop, elev.EB_Idle}
+			return DirBehaviourPair{elevio.MD_Stop, elev.EB_Idle}
 		}
 	}
 
@@ -130,3 +131,7 @@ func Requests_clearAtCurrentFloor(e elev.Elevator) elev.Elevator{
 		return e
 }
 	
+
+func PrintRequests(e elev.Elevator) {
+	fmt.Println(e.Requests)
+}

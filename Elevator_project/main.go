@@ -2,8 +2,8 @@ package main
 
 import (
 	"Elevator_project/driver-go/elevio"
-	fsm "Elevator_project/fsm"
-	"fmt"
+	"Elevator_project/fsm"
+	"Elevator_project/timer"
 )
 
 
@@ -28,21 +28,19 @@ func main(){
     go elevio.PollStopButton(drv_stop)
     //masse masse kode
 
+    // if  <- drv_floors == -1 {
+    //     fsm.Fsm_onInitBetweenFloors()
+    // } // FIKS DETTE SENERE NÅR DERE SKJØNNE HVA FAEN SOM FOREGÅR
+
+
     for {
         select{
         case a := <- drv_buttons:
-            fsm.Fsm_test(a.Floor,a.Button)
-            if a.Button == 1 {
-                fmt.Println("Button 1 pressed")
-                elevio.SetMotorDirection(elevio.MD_Down)
-            }
-            if a.Button == 0 {
-                fmt.Println("Button 0 pressed")
-                elevio.SetMotorDirection(elevio.MD_Up)
-            }
+            fsm.Fsm_onRequestButtonPress(a.Floor,a.Button)
 
         case a := <- drv_floors:
             elevio.SetFloorIndicator(a)
+            fsm.Fsm_onFloorArrival(a)
 
         case a := <- drv_obstr:
             elevio.SetStopLamp(a)
@@ -53,36 +51,9 @@ func main(){
             elevio.SetMotorDirection(elevio.MD_Stop)
 
         }
-
-        // select {
-        // case a := <- drv_buttons:
-        //     fmt.Printf("%+v\n", a)
-        //     elevio.SetButtonLamp(a.Button, a.Floor, true)
-        // case a := <- drv_floors:
-        //     fmt.Printf("%+v\n", a)
-        //     if a == numFloors-1 {
-        //         d = elevio.MD_Down
-        //     } else if a == 0 {
-        //         d = elevio.MD_Up
-        //     }
-        //     elevio.SetMotorDirection(d)
-            
-            
-        // case a := <- drv_obstr:
-        //     fmt.Printf("%+v\n", a)
-        //     if a {
-        //         elevio.SetMotorDirection(elevio.MD_Stop)
-        //     } else {
-        //         elevio.SetMotorDirection(d)
-        //     }
-            
-        // case a := <- drv_stop:
-        //     fmt.Printf("%+v\n", a)
-        //     for f := 0; f < numFloors; f++ {
-        //         for b := elevio.ButtonType(0); b < 3; b++ {
-        //             elevio.SetButtonLamp(b, f, false)
-        //         }
-        //     }
-        // }
+        if(timer.Timer_timeout()){
+            timer.Timer_stop()
+            fsm.Fsm_onDoorTimeout()
+        }
     }    
 }
