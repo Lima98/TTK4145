@@ -1,0 +1,35 @@
+Notater fra Sverre:
+Så lenge kodekvaliteten er god gjlr det ikke noe at systemet er for komplisert
+
+Sende meldinger hele veien - kan klare oss med det? 
+-->handshaking? Kan klare oss uten det ved broadcast
+
+
+Sikre samme verdensbilde vha udp broadcast
+Ikke snakk om grader av redundanthet - enten tåler det at en node krasjer, eller ikke
+Primarybackup - trenger ikke to backups
+
+Broadcast og timestamps - for å sikre om du skal forkaste en melding eller ikke om man har samme verdensbilde
+-> enten handshake eller timestamp eller cyclic counter
+
+Cyclic counter
+Broadcast ti ganger i sekundet
+Opprette skille mellom ubekrefta og bekrefta ordre
+- hvis det kommer ubekrefta ordre der det ikke er en ordre, lytt til denne
+- til slutt vil ordren bli bekrefta av alle sammen, da skru på lampa
+
+- bekrefta betyr at alle vet om den 
+- fire tilstander i en sirkel, ingen ordre, ubekrefta, bekrefta, foreslått sletting, sletting
+- det er lov å slette bekrefta ordre
+
+Til flinkeste peer-to-peer-grupper: Kan de greie seg med "her er mitt verdensbilde" en gang i sekundet. En type melding å sende
+
+
+
+
+
+
+
+
+
+
