@@ -24,7 +24,7 @@ func Requests_above(e elev.Elevator) bool{
 }
 
 func Requests_below(e elev.Elevator) bool{
-	for f := 0; f < elev.N_FLOORS; f++ {
+	for f := 0; f < e.Floor; f++ {
 		for btn := 0; btn < elev.N_BUTTONS; btn++ {
 			if(e.Requests[f][btn]){
 				return true
@@ -50,7 +50,7 @@ func Requests_chooseDirection(e elev.Elevator) DirBehaviourPair{
 			case Requests_above(e):
 				return DirBehaviourPair{elevio.MD_Up, elev.EB_Moving}
 			case Requests_here(e):
-				return DirBehaviourPair{elevio.MD_Down, elev.EB_DoorOpen}
+				return DirBehaviourPair{elevio.MD_Stop, elev.EB_DoorOpen}
 			case Requests_below(e):
 				return DirBehaviourPair{elevio.MD_Down, elev.EB_Moving}
 			default:
@@ -61,7 +61,7 @@ func Requests_chooseDirection(e elev.Elevator) DirBehaviourPair{
 			case Requests_below(e):
 				return DirBehaviourPair{elevio.MD_Down, elev.EB_Moving}
 			case Requests_here(e):
-				return DirBehaviourPair{elevio.MD_Up, elev.EB_DoorOpen}
+				return DirBehaviourPair{elevio.MD_Stop, elev.EB_DoorOpen}
 			case Requests_above(e):
 				return DirBehaviourPair{elevio.MD_Up, elev.EB_Moving}
 			default:
@@ -133,5 +133,17 @@ func Requests_clearAtCurrentFloor(e elev.Elevator) elev.Elevator{
 	
 
 func PrintRequests(e elev.Elevator) {
-	fmt.Println(e.Requests)
+	fmt.Println("   UP     DOWN     CAB")
+	fmt.Println("-----------------------")
+	for i := 3; i >= 0; i-- {
+		fmt.Print(i+1)
+		fmt.Print(" ")
+		for j := 0; j < 3; j++ {
+			fmt.Print(e.Requests[i][j])
+			fmt.Print("   ")
+	}
+	fmt.Println()
+	
+}
+fmt.Println("-----------------------")
 }

@@ -30,3 +30,15 @@ type Elevator struct {
 	Behaviour ElevatorBehaviour
 	Obstructed bool
 }
+
+func PrintBehaviour(e Elevator) {
+	switch e.Behaviour {
+	case EB_Idle:
+		println("IDLE")
+	case EB_DoorOpen:
+		println("DOOR OPEN")
+	case EB_Moving:
+	println("MOVING")
+	}
+}
+
