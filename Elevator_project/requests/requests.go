@@ -87,7 +87,7 @@ func Requests_shouldStop(e elev.Elevator) bool{
 		switch(e.Dir){
 		case elevio.MD_Down:
 			return bool(e.Requests[e.Floor][elevio.BT_HallDown] ||
-						e.Requests[e.Floor][elevio.BT_Cab]||
+						e.Requests[e.Floor][elevio.BT_Cab] 		||
 						!Requests_below(e))
 		case elevio.MD_Up:
 			return e.Requests[e.Floor][elevio.BT_HallUp]   ||

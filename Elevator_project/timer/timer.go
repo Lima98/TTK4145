@@ -19,6 +19,25 @@ func Timer_start(num_seconds float32) {
 	Timer_active = true
 }
 
+// TULLEt til lima
+var running = false
+
+func Timer() {
+	if running == true {
+		current_time := time.Now()
+		if current_time.After(Timer_end_time) {
+			Timer_stop()
+			running = false
+		}
+	}
+}
+
+func Timer_isrunning() bool {
+	return running
+}
+// TUllet til lima
+
+
 func Timer_stop() {
 	Timer_active = false
 }

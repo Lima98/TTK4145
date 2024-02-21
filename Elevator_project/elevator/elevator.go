@@ -1,9 +1,14 @@
 package elevator
 
-import elevio "Elevator_project/driver-go/elevio"
+import (
+	elevio "Elevator_project/driver-go/elevio"
+	"time"
+)
 
 const N_FLOORS = 4
 const N_BUTTONS = 3
+const OPEN_DOOR_TIME = 3 *time.Second
+
 
 type ElevatorBehaviour int
 const (
@@ -23,8 +28,5 @@ type Elevator struct {
 	Dir		elevio.MotorDirection
 	Requests [N_FLOORS][N_BUTTONS]bool
 	Behaviour ElevatorBehaviour
+	Obstructed bool
 }
-
-// func NewElevator(elev Elevator) *Elevator {
-// 	return &Elevator{Floor: -1, Dir: MD_Stop, Requests: [N_FLOORS][N_BUTTONS], Behaviour: EB_Idle}
-// }
