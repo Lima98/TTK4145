@@ -5,6 +5,7 @@ import (
 	elev "Elevator_project/elevator"
 	"Elevator_project/requests"
 	"fmt"
+	"net"
 	"time"
 )
 
@@ -41,6 +42,9 @@ func Statemachine(){
         fmt.Println("\n\n\n\n\n")
         requests.PrintRequests(elevator)
         elev.PrintBehaviour(elevator)
+        
+        SendRequestsToBackup(elevator)
+      
 
         select{
         case a := <- buttons:
@@ -145,3 +149,19 @@ func SetAllLights(e elev.Elevator){
     }
 }
 
+func SendRequestsToBackup(e elev.Elevator){
+
+    var cabOrder = []byte{0,0,0,0,0,0,0,0,0}
+
+    for i := 0; i < elev.N_FLOORS; i++ {
+        if e.Requests[i][2] {
+            cabOrder[i] = 1
+        }else {
+            cabOrder[i] = 0
+        }  
+    }
+    
+    conn, _ := net.Dial("udp","localhost:20022") 
+    conn.Write([]byte(cabOrder))
+    conn.Close()
+}

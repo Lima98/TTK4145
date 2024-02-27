@@ -1,9 +1,14 @@
 package main
 
 import (
+	"Elevator_project/autorestart"
 	"Elevator_project/driver-go/elevio"
-	"Elevator_project/fsm"
 )
+
+const proto, addrFsmPp = "udp", "localhost:20022"
+const addrPpBackup = "localhost:30022"
+
+
 
 func main(){
 
@@ -14,8 +19,8 @@ func main(){
     var d elevio.MotorDirection = elevio.MD_Stop
     elevio.SetMotorDirection(d)
     
-    go fsm.Statemachine()
+    go autorestart.ProcessPair(proto, addrFsmPp,addrPpBackup)
     
     select {}
-      
-}
+
+}     
