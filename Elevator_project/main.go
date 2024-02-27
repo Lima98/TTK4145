@@ -9,7 +9,6 @@ const proto, addrFsmPp = "udp", "localhost:20022"
 const addrPpBackup = "localhost:30022"
 
 
-
 func main(){
 
     numFloors := 4

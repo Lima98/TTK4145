@@ -12,4 +12,5 @@ Neste gang: fortsette med oversetting
 NB: hele veien være obss på at ting kan endres når vi skal implementere funksjon for flere heiser, feks køfunksjonen
 
 
-    
+27 feb ETTER LUNSJ
+I overgang til master må vi sende lest data og oppdatere den faktiske køen i henhold til dette.
