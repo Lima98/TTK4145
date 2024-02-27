@@ -12,7 +12,8 @@ import (
 
 // We define some custom struct to send over the network.
 // Note that all members we want to transmit must be public. Any private members
-//  will be received as zero-values.
+//
+//	will be received as zero-values.
 type HelloMsg struct {
 	Message string
 	Iter    int
@@ -52,8 +53,8 @@ func main() {
 	// ... and start the transmitter/receiver pair on some port
 	// These functions can take any number of channels! It is also possible to
 	//  start multiple transmitters/receivers on the same port.
-	go bcast.Transmitter(16569, helloTx)
-	//go bcast.Receiver(16569, helloRx)
+	//go bcast.Transmitter(16569, helloTx)
+	go bcast.Receiver(16569, helloRx)
 
 	// The example message. We just send one of these every second.
 	go func() {
