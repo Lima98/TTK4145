@@ -92,6 +92,7 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 		// NETWORK TEST
 		case a := <-worldViewRx:
 			fmt.Println(a)
+			worldView.Orders = a.Orders
 		// NETWORK TEST
 
 		case a := <-buttons:

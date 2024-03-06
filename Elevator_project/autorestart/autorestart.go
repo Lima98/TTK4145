@@ -18,7 +18,9 @@ func ProcessPair(proto string, addrFsmPp string, addrPpBackup string) {
 	var programtype = 1 //0 is primary, 1 is backup
 
 	data, _ := os.ReadFile(backupFilePath)
-
+	// MULIGENS SE PÅ EN FIX PÅ DETTE ???
+	// BACKUP MÅ OGSÅ FØRSØKE MORD PÅ PRIMARY VED OVERTAKELSE/KUPP
+	
 	//data := []byte{0, 0, 0, 0}
 	fmt.Print("FROM THE FILE WE READ: ")
 	fmt.Println(data)
