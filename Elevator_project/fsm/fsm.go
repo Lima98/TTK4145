@@ -29,6 +29,7 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 	worldViewRx := make(chan network.WorldViewMsg)
 
 	go network.Network(worldViewTx, worldViewRx)
+	
 
 	// Make ID for this elevator
 	var id string
@@ -83,17 +84,27 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 		// Need to send the queue to the master queue
 		// NEed to send and recieve the queue on the network
 
-
-		wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
-									  ID: elevator.ID}
-		worldViewTx <- wvMsg
-
+		
 		select {
-		// NETWORK TEST
-		case a := <-worldViewRx:
-			fmt.Println(a)
-			worldView.Orders = a.Orders
-		// NETWORK TEST
+			// NETWORK TEST
+			case a := <- worldViewRx:
+				fmt.Println(a)
+				
+					for i := 0; i < elev.N_FLOORS; i++ {
+						for j := 0; j < elev.N_BUTTONS-1; j++ {
+							//if a.Orders[i][j] > worldView.Orders[i][j] ||(a.Orders[i][j] == 0 && worldView.Orders[i][j] == 2){
+
+							if a.Orders[i][j] != 2 {
+								worldView.Orders = a.Orders
+								elevator.Requests[i][j] = true
+								fmt.Println("THIS PART RUNS")
+							}
+							//}else {
+								//Discard message
+							//}
+						}		
+					}
+			// NETWORK TEST
 
 		case a := <-buttons:
 			switch elevator.Behaviour {
@@ -101,26 +112,35 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 				if requests.Requests_shouldClearImmediately(elevator, a.Floor, a.Button) {
 					openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
 				} else {
-					if (a.Button ==  2) {
+						if (a.Button ==  elevio.BT_Cab) {
+							elevator.Requests[a.Floor][a.Button] = true
+						}else  {
+							worldView.Orders[a.Floor][a.Button] = 0
+						}
+						wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
+							ID: elevator.ID}
+						worldViewTx <- wvMsg	
+				}
+
+			case elev.EB_Moving:
+					if (a.Button ==  elevio.BT_Cab) {
 						elevator.Requests[a.Floor][a.Button] = true
 					}else  {
 						worldView.Orders[a.Floor][a.Button] = 0
 					}
-				}
-
-			case elev.EB_Moving:
-				if (a.Button ==  2) {
-					elevator.Requests[a.Floor][a.Button] = true 
-				}else  {
-					worldView.Orders[a.Floor][a.Button] = 0
-				}
+					wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
+						ID: elevator.ID}
+					worldViewTx <- wvMsg	
 
 			case elev.EB_Idle:
-				if (a.Button ==  2) {
-					elevator.Requests[a.Floor][a.Button] = true 
-				}else  {
-					worldView.Orders[a.Floor][a.Button] = 0
-				}
+					if (a.Button ==  elevio.BT_Cab) {
+						elevator.Requests[a.Floor][a.Button] = true
+					}else  {
+						worldView.Orders[a.Floor][a.Button] = 0
+					}
+					wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
+						ID: elevator.ID}
+					worldViewTx <- wvMsg	
 
 				pair := requests.Requests_chooseDirection(elevator)
 				elevator.Dir = pair.Dir
@@ -207,6 +227,7 @@ func SetAllLights(e elev.Elevator) {
 		}
 	}
 }
+
 
 func SendRequestsToBackup(e elev.Elevator, proto string, addr string) {
 
