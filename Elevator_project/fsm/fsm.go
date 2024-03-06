@@ -80,6 +80,14 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 		requests.PrintRequests(elevator)
 		elev.PrintBehaviour(elevator)
 
+		for i := 0; i < elev.N_FLOORS; i++ {
+			for j := 0; j < elev.N_BUTTONS-1; j++ {
+				if !elevator.Requests[i][j] {
+					worldView.Orders[i][j] = 2
+				}
+			}
+		}
+
 		SendRequestsToBackup(elevator, proto, addr)
 		// Need to send the queue to the master queue
 		// NEed to send and recieve the queue on the network
@@ -90,20 +98,20 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 			case a := <- worldViewRx:
 				fmt.Println(a)
 				
-					for i := 0; i < elev.N_FLOORS; i++ {
-						for j := 0; j < elev.N_BUTTONS-1; j++ {
-							//if a.Orders[i][j] > worldView.Orders[i][j] ||(a.Orders[i][j] == 0 && worldView.Orders[i][j] == 2){
+				for i := 0; i < elev.N_FLOORS; i++ {
+					for j := 0; j < elev.N_BUTTONS-1; j++ {
+						//if a.Orders[i][j] > worldView.Orders[i][j] ||(a.Orders[i][j] == 0 && worldView.Orders[i][j] == 2){
 
-							if a.Orders[i][j] != 2 {
-								worldView.Orders = a.Orders
-								elevator.Requests[i][j] = true
-								fmt.Println("THIS PART RUNS")
-							}
-							//}else {
-								//Discard message
-							//}
-						}		
-					}
+						if a.Orders[i][j] != 2 {
+							worldView.Orders = a.Orders
+							elevator.Requests[i][j] = true
+							fmt.Println("THIS PART RUNS")
+						}
+						//}else {
+							//Discard message
+						//}
+					}		
+				}
 			// NETWORK TEST
 
 		case a := <-buttons:
