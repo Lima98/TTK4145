@@ -16,6 +16,7 @@ import (
 //  will be received as zero-values.
 type WorldViewMsg struct {
 	Orders [elev.N_FLOORS][elev.N_BUTTONS-1]int
+	ID string
 }
 
 func Network(worldViewTx chan WorldViewMsg, worldViewRx chan WorldViewMsg) {

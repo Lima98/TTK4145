@@ -84,15 +84,14 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 		// NEed to send and recieve the queue on the network
 
 
-		wvMsg := network.WorldViewMsg {worldView.Orders}
+		wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
+									  ID: elevator.ID}
 		worldViewTx <- wvMsg
-		fmt.Println(elevator.ID)
 
 		select {
 		// NETWORK TEST
 		case a := <-worldViewRx:
 			fmt.Println(a)
-			
 		// NETWORK TEST
 
 		case a := <-buttons:
