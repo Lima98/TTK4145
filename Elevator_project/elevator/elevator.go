@@ -17,12 +17,6 @@ const (
 	EB_Moving
 )
 
-type Request struct {
-	Requested	int
-	Assigned_To	int
-	Completed	int
-}
-
 type Elevator struct {
 	Floor	int
 	Dir		elevio.MotorDirection

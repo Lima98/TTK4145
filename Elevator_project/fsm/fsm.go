@@ -3,6 +3,7 @@ package fsm
 import (
 	elevio "Elevator_project/driver-go/elevio"
 	elev "Elevator_project/elevator"
+	wv "Elevator_project/worldviewmessage"
 	"Elevator_project/requests"
 	"fmt"
 	"net"
@@ -23,9 +24,18 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 	go elevio.PollStopButton(stop)
 
 	var elevator = elev.Elevator{Floor: 1,
-		Dir:        elevio.MD_Stop,
-		Behaviour:  elev.EB_Idle,
-		Obstructed: false}
+								 Dir:        elevio.MD_Stop,
+								 Behaviour:  elev.EB_Idle,
+								 Obstructed: false}
+
+	var worldView = wv.WorldView{}
+
+	for i := 0; i < elev.N_FLOORS; i++ {
+		for j := 0; j < elev.N_BUTTONS-1; j++ {
+			worldView.Orders[i][j] = 2
+		}		
+	}
+
 
 	for i := 0; i < elev.N_FLOORS; i++ {
 		if cabOrders[i] == 1 {
@@ -51,7 +61,8 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 		elev.PrintBehaviour(elevator)
 
 		SendRequestsToBackup(elevator, proto, addr)
-		//ReceiveRequestsFromBackup(&elevator, proto, addr)
+		// Need to send the queue to the master queue
+		// NEed to send and recieve the queue on the network
 
 		select {
 		case a := <-buttons:
@@ -60,14 +71,27 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 				if requests.Requests_shouldClearImmediately(elevator, a.Floor, a.Button) {
 					openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
 				} else {
-					elevator.Requests[a.Floor][a.Button] = true
+					if (a.Button ==  2) {
+						elevator.Requests[a.Floor][a.Button] = true
+					}else  {
+						worldView.Orders[a.Floor][a.Button] = 0
+					}
 				}
 
 			case elev.EB_Moving:
-				elevator.Requests[a.Floor][a.Button] = true
+				if (a.Button ==  2) {
+					elevator.Requests[a.Floor][a.Button] = true 
+				}else  {
+					worldView.Orders[a.Floor][a.Button] = 0
+				}
 
 			case elev.EB_Idle:
-				elevator.Requests[a.Floor][a.Button] = true
+				if (a.Button ==  2) {
+					elevator.Requests[a.Floor][a.Button] = true 
+				}else  {
+					worldView.Orders[a.Floor][a.Button] = 0
+				}
+
 				pair := requests.Requests_chooseDirection(elevator)
 				elevator.Dir = pair.Dir
 				elevator.Behaviour = pair.Behaviour
