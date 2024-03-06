@@ -23,6 +23,7 @@ type Elevator struct {
 	Requests [N_FLOORS][N_BUTTONS]bool
 	Behaviour ElevatorBehaviour
 	Obstructed bool
+	ID string
 }
 
 func PrintBehaviour(e Elevator) {

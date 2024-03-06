@@ -3,8 +3,10 @@ package fsm
 import (
 	elevio "Elevator_project/driver-go/elevio"
 	elev "Elevator_project/elevator"
-	wv "Elevator_project/worldviewmessage"
+	"Elevator_project/network"
+	"Elevator_project/network/network/localip"
 	"Elevator_project/requests"
+	wv "Elevator_project/worldviewmessage"
 	"fmt"
 	"net"
 	"os"
@@ -23,10 +25,27 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 	go elevio.PollObstructionSwitch(obstruction)
 	go elevio.PollStopButton(stop)
 
+	worldViewTx := make(chan network.WorldViewMsg)
+	worldViewRx := make(chan network.WorldViewMsg)
+
+	go network.Network(worldViewTx, worldViewRx)
+
+	// Make ID for this elevator
+	var id string
+	if id == "" {
+		localIP, err := localip.LocalIP()
+		if err != nil {
+			fmt.Println(err)
+			localIP = "DISCONNECTED"
+		}
+		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
+	}
+
 	var elevator = elev.Elevator{Floor: 1,
 								 Dir:        elevio.MD_Stop,
 								 Behaviour:  elev.EB_Idle,
-								 Obstructed: false}
+								 Obstructed: false,
+								 ID: id}
 
 	var worldView = wv.WorldView{}
 
@@ -64,7 +83,18 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 		// Need to send the queue to the master queue
 		// NEed to send and recieve the queue on the network
 
+
+		wvMsg := network.WorldViewMsg {worldView.Orders}
+		worldViewTx <- wvMsg
+		fmt.Println(elevator.ID)
+
 		select {
+		// NETWORK TEST
+		case a := <-worldViewRx:
+			fmt.Println(a)
+			
+		// NETWORK TEST
+
 		case a := <-buttons:
 			switch elevator.Behaviour {
 			case elev.EB_DoorOpen:
