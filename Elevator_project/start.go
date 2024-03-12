@@ -17,8 +17,8 @@ func main() {
 		if err != nil {
 			fmt.Println("Error starting: ", err)
 		}
-
-		cmd_main := exec.Command("gnome-terminal", "--", "go", "run", "main.go", "-id="+strconv.Itoa(i))
+		
+		cmd_main := exec.Command("gnome-terminal", "--", "go", "run", "main.go", strconv.Itoa(i))
 		err = cmd_main.Run()
 		if err != nil {
 			fmt.Println("Error starting: ", err)

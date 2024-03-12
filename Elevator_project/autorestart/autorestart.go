@@ -11,16 +11,16 @@ import (
 
 // Spør studass om hvordan vi kan definere disse en gang når de brukes på tvers av filer
 
-const backupFilePath = "./autorestart/cab_orders.txt"
+const backupFilePath = "./autorestart/cab_orders_"
 
-func ProcessPair(proto string, addrFsmPp string, addrPpBackup string) {
+func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, id string) {
 
 	var programtype = 1 //0 is primary, 1 is backup
 
-	data, _ := os.ReadFile(backupFilePath)
+	data, _ := os.ReadFile(backupFilePath + id + ".txt")
 	// MULIGENS SE PÅ EN FIX PÅ DETTE ???
 	// BACKUP MÅ OGSÅ FØRSØKE MORD PÅ PRIMARY VED OVERTAKELSE/KUPP
-	
+
 	//data := []byte{0, 0, 0, 0}
 	fmt.Print("FROM THE FILE WE READ: ")
 	fmt.Println(data)

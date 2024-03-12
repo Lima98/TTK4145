@@ -17,9 +17,11 @@ import (
 type WorldViewMsg struct {
 	Orders [elev.N_FLOORS][elev.N_BUTTONS-1]int
 	ID string
+	Fault bool
+	ElevatorState elev.Elevator
 }
 
-func Network(worldViewTx chan WorldViewMsg, worldViewRx chan WorldViewMsg) {
+func Network(worldViewTx chan WorldViewMsg, worldViewRx chan WorldViewMsg, peerUpdateCh chan peers.PeerUpdate) {
 	// Our id can be anything. Here we pass it on the command line, using
 	//  `go run main.go -id=our_id`
 	var id string
@@ -40,7 +42,7 @@ func Network(worldViewTx chan WorldViewMsg, worldViewRx chan WorldViewMsg) {
 
 	// We make a channel for receiving updates on the id's of the peers that are
 	//  alive on the network
-	peerUpdateCh := make(chan peers.PeerUpdate)
+	// peerUpdateCh := make(chan peers.PeerUpdate)
 	// We can disable/enable the transmitter after it has been started.
 	// This could be used to signal that we are somehow "unavailable".
 	peerTxEnable := make(chan bool)

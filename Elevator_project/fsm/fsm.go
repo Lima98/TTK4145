@@ -5,6 +5,7 @@ import (
 	elev "Elevator_project/elevator"
 	"Elevator_project/network"
 	"Elevator_project/network/network/localip"
+	"Elevator_project/network/network/peers"
 	"Elevator_project/requests"
 	wv "Elevator_project/worldviewmessage"
 	"fmt"
@@ -28,7 +29,9 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 	worldViewTx := make(chan network.WorldViewMsg)
 	worldViewRx := make(chan network.WorldViewMsg)
 
-	go network.Network(worldViewTx, worldViewRx)
+	peerUpdateCh := make(chan peers.PeerUpdate)
+
+	go network.Network(worldViewTx, worldViewRx, peerUpdateCh)
 
 	// Make ID for this elevator
 	var id string
@@ -64,6 +67,7 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 	}
 
 	openDoorTimer := time.NewTimer(1000 * time.Second)
+	faultTimer := time.NewTimer(elev.FAULT_TIMEOUT)
 
 	select {
 	case <-floors:
@@ -74,7 +78,8 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 	}
 
 	for {
-		fmt.Println("\n\n\n\n\n")
+		fmt.Println("---------------------------------------------------------------")
+		fmt.Println("---------------------------------------------------------------")
 		requests.PrintRequests(elevator)
 		elev.PrintBehaviour(elevator)
 
@@ -94,19 +99,30 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 		// NETWORK TEST
 		case a := <-worldViewRx:
 			fmt.Println(a)
-
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
 					if a.Orders[i][j] > worldView.Orders[i][j] || ((a.Orders[i][j] == 0) && (worldView.Orders[i][j] == 2)) {
 						worldView.Orders = a.Orders
-						elevator.Requests[i][j] = true
-						fmt.Println("THIS PART RUNS")
+						break
 					} else {
 						//Discard message
 					}
 				}
 			}
+
+			for i := 0; i < elev.N_FLOORS; i++ {
+				for j := 0; j < elev.N_BUTTONS-1; j++ {
+					if (worldView.AssignedTo[i][j] == elevator.ID) && (worldView.Orders[i][j] == 1) { // Sjekk vår ID i assignedto fra Orders
+						elevator.Requests[i][j] = true
+					}
+					if elevator.Requests[i][j] == false {
+						worldView.Orders[i][j] = 2
+					}
+				}
+			}
 			// NETWORK TEST
+		//case a := <-peerUpdateCh:
+		//fmt.Println(a.) // DEtte må vi få sett på mtp. orderefordeling
 
 		case a := <-buttons:
 			switch elevator.Behaviour {
@@ -125,6 +141,7 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 				}
 
 			case elev.EB_Moving:
+				faultTimer.Reset(elev.FAULT_TIMEOUT)
 				if a.Button == elevio.BT_Cab {
 					elevator.Requests[a.Floor][a.Button] = true
 				} else {
@@ -158,7 +175,7 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 					elevio.SetMotorDirection(elevator.Dir)
 
 				case elev.EB_Idle:
-
+					//faultTimer.Reset(elev.FAULT_TIMEOUT)
 				}
 			}
 
@@ -179,14 +196,19 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 				}
 			}
 
-		case elevator.Obstructed = <-obstruction:
+		case a := <-obstruction:
+			wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
+				ID:    elevator.ID,
+				Fault: a}
+			worldViewTx <- wvMsg
+			elevator.Obstructed = a
 
 		case a := <-stop:
 			elevio.SetStopLamp(a)
 			elevio.SetMotorDirection(elevio.MD_Stop)
 
 		case <-openDoorTimer.C:
-			fmt.Println("timer has timed out")
+			fmt.Println("Doortimer has timed out")
 
 			if elevator.Obstructed {
 				fmt.Println("Still obstructed")
@@ -218,6 +240,15 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 					elevio.SetMotorDirection(elevator.Dir)
 				}
 			}
+		case <-faultTimer.C:
+			fmt.Println("##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##")
+			wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
+				ID:    elevator.ID,
+				Fault: true}
+			worldViewTx <- wvMsg
+			fmt.Println("Fault is set to", wvMsg.Fault)
+			fmt.Println("##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##")
+
 		}
 	}
 }

@@ -6,6 +6,7 @@ import elev "Elevator_project/elevator"
 
  type WorldView struct {
 	Orders [elev.N_FLOORS][elev.N_BUTTONS-1]int // 0 unassigned, 1 assigned, 2 completed
+	AssignedTo [elev.N_FLOORS][elev.N_BUTTONS-1]string
  }
 
 
