@@ -4,7 +4,7 @@ import (
 	"Elevator_project/network/network/bcast"
 	"Elevator_project/network/network/localip"
 	"Elevator_project/network/network/peers"
-	elev "Elevator_project/elevator"
+	wv "Elevator_project/worldviewmessage"
 	"flag"
 	"fmt"
 	"os"
@@ -14,14 +14,9 @@ import (
 // We define some custom struct to send over the network.
 // Note that all members we want to transmit must be public. Any private members
 //  will be received as zero-values.
-type WorldViewMsg struct {
-	Orders [elev.N_FLOORS][elev.N_BUTTONS-1]int
-	ID string
-	Fault bool
-	ElevatorState elev.Elevator
-}
 
-func Network(worldViewTx chan WorldViewMsg, worldViewRx chan WorldViewMsg, peerUpdateCh chan peers.PeerUpdate) {
+
+func Network(worldViewTx chan wv.WorldViewMsg, worldViewRx chan wv.WorldViewMsg, peerUpdateCh chan peers.PeerUpdate) {
 	// Our id can be anything. Here we pass it on the command line, using
 	//  `go run main.go -id=our_id`
 	var id string

@@ -3,18 +3,19 @@ package fsm
 import (
 	elevio "Elevator_project/driver-go/elevio"
 	elev "Elevator_project/elevator"
+	hra "Elevator_project/hra"
 	"Elevator_project/network"
-	"Elevator_project/network/network/localip"
 	"Elevator_project/network/network/peers"
 	"Elevator_project/requests"
 	wv "Elevator_project/worldviewmessage"
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"time"
 )
 
-func Statemachine(proto string, addr string, cabOrders []byte) {
+func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 
 	buttons := make(chan elevio.ButtonEvent)
 	floors := make(chan int)
@@ -26,23 +27,12 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 	go elevio.PollObstructionSwitch(obstruction)
 	go elevio.PollStopButton(stop)
 
-	worldViewTx := make(chan network.WorldViewMsg)
-	worldViewRx := make(chan network.WorldViewMsg)
+	worldViewTx := make(chan wv.WorldViewMsg)
+	worldViewRx := make(chan wv.WorldViewMsg)
 
 	peerUpdateCh := make(chan peers.PeerUpdate)
 
 	go network.Network(worldViewTx, worldViewRx, peerUpdateCh)
-
-	// Make ID for this elevator
-	var id string
-	if id == "" {
-		localIP, err := localip.LocalIP()
-		if err != nil {
-			fmt.Println(err)
-			localIP = "DISCONNECTED"
-		}
-		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
-	}
 
 	var elevator = elev.Elevator{Floor: 1,
 		Dir:        elevio.MD_Stop,
@@ -93,16 +83,18 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 
 		SendRequestsToBackup(elevator, proto, addr)
 		// Need to send the queue to the master queue
-		// NEed to send and recieve the queue on the network
+		// Need to send and recieve the queue on the network
 
 		select {
-		// NETWORK TEST
+		// NETWORK
 		case a := <-worldViewRx:
 			fmt.Println(a)
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
 					if a.Orders[i][j] > worldView.Orders[i][j] || ((a.Orders[i][j] == 0) && (worldView.Orders[i][j] == 2)) {
 						worldView.Orders = a.Orders
+						tempID, _ := strconv.Atoi(a.ID)
+						worldView.Elevators[tempID] = a.ElevatorState
 						break
 					} else {
 						//Discard message
@@ -110,19 +102,29 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 				}
 			}
 
+			hallAssignments := hra.HallRequestAssigner(worldView.Orders, worldView.Elevators)
+			idToString := make(map[string]string)
+			idToString["0"] = "one"
+			idToString["1"] = "two"
+			idToString["2"] = "three"
+
+			fmt.Println("HALL ASSIGNMENTS:")
+			fmt.Println(hallAssignments["one"])
+
+			// Må endres når hall assigner er implementert
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
-					if (worldView.AssignedTo[i][j] == elevator.ID) && (worldView.Orders[i][j] == 1) { // Sjekk vår ID i assignedto fra Orders
-						elevator.Requests[i][j] = true
-					}
-					if elevator.Requests[i][j] == false {
-						worldView.Orders[i][j] = 2
-					}
+					elevator.Requests[i][j] = hallAssignments[idToString[elevator.ID]][i][j]
 				}
 			}
-			// NETWORK TEST
-		//case a := <-peerUpdateCh:
-		//fmt.Println(a.) // DEtte må vi få sett på mtp. orderefordeling
+
+			// -------------------------------------
+			// NETWORK
+
+		case a := <-peerUpdateCh:
+			fmt.Println("PEER UPDATE")
+			fmt.Println(a) // DEtte må vi få sett på mtp. orderefordeling
+			fmt.Println("-")
 
 		case a := <-buttons:
 			switch elevator.Behaviour {
@@ -135,8 +137,9 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 					} else {
 						worldView.Orders[a.Floor][a.Button] = 0
 					}
-					wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
-						ID: elevator.ID}
+					wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
+						ID:            elevator.ID,
+						ElevatorState: elevator}
 					worldViewTx <- wvMsg
 				}
 
@@ -147,8 +150,9 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 				} else {
 					worldView.Orders[a.Floor][a.Button] = 0
 				}
-				wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
-					ID: elevator.ID}
+				wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
+					ID:            elevator.ID,
+					ElevatorState: elevator}
 				worldViewTx <- wvMsg
 
 			case elev.EB_Idle:
@@ -157,8 +161,9 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 				} else {
 					worldView.Orders[a.Floor][a.Button] = 0
 				}
-				wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
-					ID: elevator.ID}
+				wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
+					ID:            elevator.ID,
+					ElevatorState: elevator}
 				worldViewTx <- wvMsg
 
 				pair := requests.Requests_chooseDirection(elevator)
@@ -197,9 +202,10 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 			}
 
 		case a := <-obstruction:
-			wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
-				ID:    elevator.ID,
-				Fault: a}
+			wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
+				ID:            elevator.ID,
+				ElevatorState: elevator,
+				Fault:         a}
 			worldViewTx <- wvMsg
 			elevator.Obstructed = a
 
@@ -242,9 +248,10 @@ func Statemachine(proto string, addr string, cabOrders []byte) {
 			}
 		case <-faultTimer.C:
 			fmt.Println("##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##")
-			wvMsg := network.WorldViewMsg{Orders: worldView.Orders,
-				ID:    elevator.ID,
-				Fault: true}
+			wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
+				ID:            elevator.ID,
+				ElevatorState: elevator,
+				Fault:         true}
 			worldViewTx <- wvMsg
 			fmt.Println("Fault is set to", wvMsg.Fault)
 			fmt.Println("##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##")

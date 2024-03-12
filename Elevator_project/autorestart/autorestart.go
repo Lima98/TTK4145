@@ -11,13 +11,13 @@ import (
 
 // Spør studass om hvordan vi kan definere disse en gang når de brukes på tvers av filer
 
-const backupFilePath = "./autorestart/cab_orders_"
+const backupFilePath = "./autorestart/cab_orders.txt"
 
-func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, id string) {
+func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode string, id string) {
 
 	var programtype = 1 //0 is primary, 1 is backup
 
-	data, _ := os.ReadFile(backupFilePath + id + ".txt")
+	data, _ := os.ReadFile(backupFilePath)
 	// MULIGENS SE PÅ EN FIX PÅ DETTE ???
 	// BACKUP MÅ OGSÅ FØRSØKE MORD PÅ PRIMARY VED OVERTAKELSE/KUPP
 
@@ -44,8 +44,8 @@ func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, id string)
 					data = []byte{0, 0, 0, 0}
 				}
 
-				go fsm.Statemachine(proto, addrFsmPp, data)
-				exec.Command("gnome-terminal", "--", "go", "run", "./main.go").Run()
+				go fsm.Statemachine(proto, addrFsmPp, data, id)
+				exec.Command("gnome-terminal", "--", "go", "run", "./main.go", mode, id).Run()
 			}
 		}
 	}

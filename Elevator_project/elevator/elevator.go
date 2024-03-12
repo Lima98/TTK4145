@@ -7,6 +7,7 @@ import (
 
 const N_FLOORS = 4
 const N_BUTTONS = 3
+const N_ELEVATORS = 3
 const OPEN_DOOR_TIME = 3 * time.Second
 const FAULT_TIMEOUT  = 6 * time.Second
 
