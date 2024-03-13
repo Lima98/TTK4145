@@ -19,13 +19,22 @@ const (
 	EB_Moving
 )
 
+type OrderState int
+const (
+	Unassigned 	= 0
+	Assigned	= 1	
+	Completed	= 2
+)
+
+
+
 type Elevator struct {
-	Floor	int
-	Dir		elevio.MotorDirection
-	Requests [N_FLOORS][N_BUTTONS]bool
-	Behaviour ElevatorBehaviour
-	Obstructed bool
-	ID string
+	Floor           int
+	Dir             elevio.MotorDirection
+	Requests        [N_FLOORS][N_BUTTONS]bool
+	Behaviour       ElevatorBehaviour
+	Obstructed      bool
+	ID              string
 }
 
 func PrintBehaviour(e Elevator) {

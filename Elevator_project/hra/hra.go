@@ -47,15 +47,15 @@ func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevator
 	directionToString[elevio.MD_Stop] = "stop"
 
 	idToString := make(map[string]string)
-	idToString["0"] = "one"
-	idToString["1"] = "two"
-	idToString["2"] = "three"
+	idToString["0"] = "zero"
+	idToString["1"] = "one"
+	idToString["2"] = "two"
 
 	HallRequestsTemp := [elev.N_FLOORS][2]bool{}
 
 	for i := 0; i < elev.N_FLOORS; i++ {
 		for j := 0; j < elev.N_BUTTONS-1; j++ {
-			if orders[i][j] < 2 {
+			if orders[i][j] < elev.Completed {
 				HallRequestsTemp[i][j] = true
 			} else {
 				HallRequestsTemp[i][j] = false
@@ -67,11 +67,7 @@ func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevator
 	CabRequestsTemp := make([][elev.N_FLOORS]bool, NumPeers)
 
 	for i := 0; i < len(peers); i++ {
-		fmt.Print("Iteration i: ")
-		fmt.Println(i)
 		for j := 0; j < elev.N_FLOORS; j++ {
-			fmt.Print("Iteration j: ")
-			fmt.Println(j)
 			CabRequestsTemp[i][j] = Elevators[peers[i]].Requests[j][2]
 		}
 	}

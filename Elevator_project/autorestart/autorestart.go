@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strconv"
 	"time"
 )
 
@@ -18,6 +19,7 @@ func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode strin
 	var programtype = 1 //0 is primary, 1 is backup
 
 	data, _ := os.ReadFile(backupFilePath)
+	var pid string
 	// MULIGENS SE PÅ EN FIX PÅ DETTE ???
 	// BACKUP MÅ OGSÅ FØRSØKE MORD PÅ PRIMARY VED OVERTAKELSE/KUPP
 
@@ -29,15 +31,21 @@ func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode strin
 		switch programtype {
 		case 0:
 			conn, err := net.Dial(proto, addrPpBackup)
-			conn.Write([]byte("I am alive"))
+			conn.Write([]byte(strconv.Itoa(os.Getpid())))
 			if err == nil {
 				conn.Close()
 			}
 		case 1:
 			if checkMaster(proto, addrPpBackup) {
-				fmt.Println("I received from master")
+				conn, _ := net.ListenPacket(proto, addrPpBackup)
+	
+				conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+				buf := make([]byte, 1024)
+				num_of_bytes, _, _ := conn.ReadFrom(buf)
+				pid = string(buf[:num_of_bytes])
+				fmt.Println("My master is " + pid)
+				conn.Close()
 			} else {
-
 				programtype = 0
 				data, _ := os.ReadFile(backupFilePath)
 				if data == nil {
