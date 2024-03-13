@@ -32,7 +32,12 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 
 	peerUpdateCh := make(chan peers.PeerUpdate)
 
-	go network.Network(worldViewTx, worldViewRx, peerUpdateCh)
+	go network.Network(worldViewTx, worldViewRx, peerUpdateCh, id)
+
+	idToString := make(map[string]string)
+	idToString["0"] = "one"
+	idToString["1"] = "two"
+	idToString["2"] = "three"
 
 	var elevator = elev.Elevator{Floor: 1,
 		Dir:        elevio.MD_Stop,
@@ -41,6 +46,8 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 		ID:         id}
 
 	var worldView = wv.WorldView{}
+	worldView.Elevators = make(map[string]elev.Elevator)
+	var peerList []string
 
 	for i := 0; i < elev.N_FLOORS; i++ {
 		for j := 0; j < elev.N_BUTTONS-1; j++ {
@@ -87,26 +94,46 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 
 		select {
 		// NETWORK
+		case a := <-peerUpdateCh:
+			fmt.Println("PEER UPDATE")
+			fmt.Println(a) // DEtte må vi få sett på mtp. orderefordeling
+			fmt.Println("-")
+			peerList = a.Peers
+
 		case a := <-worldViewRx:
+			fmt.Print("WORLDVIEW RECEIVED: ")
 			fmt.Println(a)
+			if a.ID == id {break}
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
-					if a.Orders[i][j] > worldView.Orders[i][j] || ((a.Orders[i][j] == 0) && (worldView.Orders[i][j] == 2)) {
-						worldView.Orders = a.Orders
-						tempID, _ := strconv.Atoi(a.ID)
-						worldView.Elevators[tempID] = a.ElevatorState
-						break
-					} else {
-						//Discard message
+					switch worldView.Orders[i][j] {
+					case 0:
+						switch a.Orders[i][j] {
+							case 0:
+							case 1: worldView.Orders[i][j] = a.Orders[i][j]
+							case 2:
+						}
+					case 1:
+						switch a.Orders[i][j] {
+							case 0:
+							case 1:
+							case 2:
+								for i := 0; i < elev.N_ELEVATORS; i++ {
+									if worldView.Elevators[idToString[strconv.Itoa(i)]].Requests[i][j] {
+										worldView.Orders[i][j] = a.Orders[i][j]
+									}
+								} 
+					}
+					case 2:
+						switch a.Orders[i][j] {
+							case 0: worldView.Orders[i][j] = a.Orders[i][j]
+							case 1:
+							case 2:
+					}
 					}
 				}
 			}
-
-			hallAssignments := hra.HallRequestAssigner(worldView.Orders, worldView.Elevators)
-			idToString := make(map[string]string)
-			idToString["0"] = "one"
-			idToString["1"] = "two"
-			idToString["2"] = "three"
+			hallAssignments := hra.HallRequestAssigner(worldView.Orders, worldView.Elevators, peerList)
 
 			fmt.Println("HALL ASSIGNMENTS:")
 			fmt.Println(hallAssignments["one"])
@@ -115,16 +142,12 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
 					elevator.Requests[i][j] = hallAssignments[idToString[elevator.ID]][i][j]
+					if hallAssignments[idToString[elevator.ID]][i][j] {
+						worldView.Orders[i][j] = 1
+					}
 				}
 			}
-
-			// -------------------------------------
-			// NETWORK
-
-		case a := <-peerUpdateCh:
-			fmt.Println("PEER UPDATE")
-			fmt.Println(a) // DEtte må vi få sett på mtp. orderefordeling
-			fmt.Println("-")
+		
 
 		case a := <-buttons:
 			switch elevator.Behaviour {

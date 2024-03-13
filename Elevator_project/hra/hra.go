@@ -24,7 +24,7 @@ type HRAInput struct {
 	States       map[string]HRAElevState `json:"states"`
 }
 
-func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevators [elev.N_ELEVATORS]elev.Elevator) map[string][][2]bool {
+func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevators map[string]elev.Elevator, peers []string) map[string][][2]bool {
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -35,6 +35,21 @@ func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevator
 	default:
 		panic("OS not supported")
 	}
+
+	behaviorToString := make(map[elev.ElevatorBehaviour]string)
+	behaviorToString[elev.EB_DoorOpen] = "idle"
+	behaviorToString[elev.EB_Idle] = "idle"
+	behaviorToString[elev.EB_Moving] = "moving"
+
+	directionToString := make(map[elevio.MotorDirection]string)
+	directionToString[elevio.MD_Up] = "up"
+	directionToString[elevio.MD_Down] = "down"
+	directionToString[elevio.MD_Stop] = "stop"
+
+	idToString := make(map[string]string)
+	idToString["0"] = "one"
+	idToString["1"] = "two"
+	idToString["2"] = "three"
 
 	HallRequestsTemp := [elev.N_FLOORS][2]bool{}
 
@@ -48,53 +63,32 @@ func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevator
 		}
 	}
 
-	CabRequestsTemp1 := [elev.N_FLOORS]bool{}
+	NumPeers := len(peers)
+	CabRequestsTemp := make([][elev.N_FLOORS]bool, NumPeers)
 
-	for i := 0; i < elev.N_FLOORS; i++ {
-		CabRequestsTemp1[i] = Elevators[0].Requests[i][2]
+	for i := 0; i < len(peers); i++ {
+		fmt.Print("Iteration i: ")
+		fmt.Println(i)
+		for j := 0; j < elev.N_FLOORS; j++ {
+			fmt.Print("Iteration j: ")
+			fmt.Println(j)
+			CabRequestsTemp[i][j] = Elevators[peers[i]].Requests[j][2]
+		}
 	}
 
-	CabRequestsTemp2 := [elev.N_FLOORS]bool{}
+	StatesTemp := map[string]HRAElevState{}
 
-	for i := 0; i < elev.N_FLOORS; i++ {
-		CabRequestsTemp2[i] = Elevators[1].Requests[i][2]
-	}
-
-	CabRequestsTemp3 := [elev.N_FLOORS]bool{}
-
-	for i := 0; i < elev.N_FLOORS; i++ {
-		CabRequestsTemp3[i] = Elevators[2].Requests[i][2]
-	}
-
-	behaviorToString := make(map[elev.ElevatorBehaviour]string)
-	behaviorToString[elev.EB_DoorOpen] = "idle"
-	behaviorToString[elev.EB_Idle] = "idle"
-	behaviorToString[elev.EB_Moving] = "moving"
-
-	directionToString := make(map[elevio.MotorDirection]string)
-	directionToString[elevio.MD_Up] = "up"
-	directionToString[elevio.MD_Down] = "down"
-	directionToString[elevio.MD_Stop] = "stop"
-
-	StatesTemp := map[string]HRAElevState{
-		"one": HRAElevState{
-			Behavior:    behaviorToString[Elevators[0].Behaviour],
-			Floor:       Elevators[0].Floor,
-			Direction:   directionToString[Elevators[0].Dir],
-			CabRequests: CabRequestsTemp1,
-		},
-		"two": HRAElevState{
-			Behavior:    behaviorToString[Elevators[1].Behaviour],
-			Floor:       Elevators[1].Floor,
-			Direction:   directionToString[Elevators[1].Dir],
-			CabRequests: CabRequestsTemp1,
-		},
-		"three": HRAElevState{
-			Behavior:    behaviorToString[Elevators[2].Behaviour],
-			Floor:       Elevators[2].Floor,
-			Direction:   directionToString[Elevators[2].Dir],
-			CabRequests: CabRequestsTemp1,
-		},
+	for i := 0; i < len(peers); i++ {
+		if Elevators[peers[i]].Obstructed {
+			StatesTemp[idToString[peers[i]]] = HRAElevState{}
+		}else{
+			StatesTemp[idToString[peers[i]]] = HRAElevState{
+				Behavior:    behaviorToString[Elevators[peers[i]].Behaviour],
+				Floor:       Elevators[peers[i]].Floor,
+				Direction:   directionToString[Elevators[peers[i]].Dir],
+				CabRequests: CabRequestsTemp[i],
+			}
+		}
 	}
 
 	input := HRAInput{

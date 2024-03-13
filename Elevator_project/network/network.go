@@ -2,12 +2,8 @@ package network
 
 import (
 	"Elevator_project/network/network/bcast"
-	"Elevator_project/network/network/localip"
 	"Elevator_project/network/network/peers"
 	wv "Elevator_project/worldviewmessage"
-	"flag"
-	"fmt"
-	"os"
 	//"time"
 )
 
@@ -16,24 +12,24 @@ import (
 //  will be received as zero-values.
 
 
-func Network(worldViewTx chan wv.WorldViewMsg, worldViewRx chan wv.WorldViewMsg, peerUpdateCh chan peers.PeerUpdate) {
+func Network(worldViewTx chan wv.WorldViewMsg, worldViewRx chan wv.WorldViewMsg, peerUpdateCh chan peers.PeerUpdate, id string) {
 	// Our id can be anything. Here we pass it on the command line, using
 	//  `go run main.go -id=our_id`
-	var id string
-	flag.StringVar(&id, "id", "", "id of this peer")
-	flag.Parse()
+	//var id string
+	//flag.StringVar(&id, "id", "", "id of this peer")
+	//flag.Parse()
 
 	// ... or alternatively, we can use the local IP address.
 	// (But since we can run multiple programs on the same PC, we also append the
 	//  process ID)
-	if id == "" {
-		localIP, err := localip.LocalIP()
-		if err != nil {
-			fmt.Println(err)
-			localIP = "DISCONNECTED"
-		}
-		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
-	}
+	//if id == "" {
+	//	localIP, err := localip.LocalIP()
+	//	if err != nil {
+	//	fmt.Println(err)
+	//	localIP = "DISCONNECTED"
+	//	}
+	//	id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
+	//}
 
 	// We make a channel for receiving updates on the id's of the peers that are
 	//  alive on the network
