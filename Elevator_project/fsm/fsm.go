@@ -30,17 +30,12 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 
 	worldViewTx := make(chan wv.WorldViewMsg)
 	worldViewRx := make(chan wv.WorldViewMsg)
-
 	peerUpdateCh := make(chan peers.PeerUpdate)
 
 	go network.Network(worldViewTx, worldViewRx, peerUpdateCh, id)
-	
-	idToString := make(map[string]string)
-	idToString["0"] = "zero"
-	idToString["1"] = "one"
-	idToString["2"] = "two"
 
-	var elevator = elev.Elevator{Floor: 1,
+	var elevator = elev.Elevator{
+		Floor: 1,
 		Dir:        elevio.MD_Stop,
 		Behaviour:  elev.EB_Idle,
 		Obstructed: false,
@@ -49,7 +44,7 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 	var worldView = wv.WorldView{}
 	worldView.Orders = [elev.N_FLOORS][elev.N_BUTTONS - 1]int{}
 	worldView.Elevators = make(map[string]elev.Elevator)
-	worldView.Elevators[idToString[id]] = elevator
+	worldView.Elevators[id] = elevator
 
 	var peerList []string
 	
@@ -58,7 +53,7 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 		for j := 0; j < elev.N_BUTTONS-1; j++ {
 			worldView.Orders[i][j] = elev.Completed
 		}
-	}
+	} // legg inn sjekk for a kun riktig heis kan sette til completed
 
 	for i := 0; i < elev.N_FLOORS; i++ {
 		if cabOrders[i] == 1 {
@@ -79,8 +74,6 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 		elevator.Dir = elevio.MD_Down
 		elevator.Behaviour = elev.EB_Moving
 	}
-
-	worldView.Elevators[idToString[id]] = elevator
 
 	go SendAllTheTime(worldView,elevator,worldViewTx)
 	
@@ -122,9 +115,10 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 							case elev.Assigned:
 							case elev.Completed:
 								for i := 0; i < elev.N_ELEVATORS; i++ {
-									if worldView.Elevators[idToString[strconv.Itoa(i)]].Requests[i][j] {
-										worldView.Orders[i][j] = a.Orders[i][j]
-									}
+									//Denne må fikses til å gå gjennom peerlista
+									//if worldView.Elevators[idToString[strconv.Itoa(i)]].Requests[i][j] {
+										//worldView.Orders[i][j] = a.Orders[i][j]
+									//}
 								}
 								fmt.Println("Elevator " + id + " updated worldview from Assigned to Completed.")
 						}
@@ -150,8 +144,8 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 			// Må endres når hall assigner er implementert
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
-					elevator.Requests[i][j] = hallAssignments[idToString[elevator.ID]][i][j]
-					if hallAssignments[idToString[elevator.ID]][i][j] {
+					elevator.Requests[i][j] = hallAssignments[elevator.ID][i][j]
+					if hallAssignments[elevator.ID][i][j] {
 						worldView.Orders[i][j] = elev.Assigned
 					}
 				}

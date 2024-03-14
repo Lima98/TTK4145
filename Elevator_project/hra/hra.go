@@ -46,11 +46,6 @@ func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevator
 	directionToString[elevio.MD_Down] = "down"
 	directionToString[elevio.MD_Stop] = "stop"
 
-	idToString := make(map[string]string)
-	idToString["0"] = "zero"
-	idToString["1"] = "one"
-	idToString["2"] = "two"
-
 	HallRequestsTemp := [elev.N_FLOORS][2]bool{}
 
 	for i := 0; i < elev.N_FLOORS; i++ {
@@ -76,9 +71,9 @@ func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevator
 
 	for i := 0; i < len(peers); i++ {
 		if Elevators[peers[i]].Obstructed {
-			StatesTemp[idToString[peers[i]]] = HRAElevState{}
+			StatesTemp[peers[i]] = HRAElevState{}
 		}else{
-			StatesTemp[idToString[peers[i]]] = HRAElevState{
+			StatesTemp[peers[i]] = HRAElevState{
 				Behavior:    behaviorToString[Elevators[peers[i]].Behaviour],
 				Floor:       Elevators[peers[i]].Floor,
 				Direction:   directionToString[Elevators[peers[i]].Dir],

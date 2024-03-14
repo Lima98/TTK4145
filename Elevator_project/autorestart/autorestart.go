@@ -10,17 +10,24 @@ import (
 	"time"
 )
 
-// Spør studass om hvordan vi kan definere disse en gang når de brukes på tvers av filer
-
 const backupFilePath = "./autorestart/cab_orders.txt"
+
+
+type ProgramType int
+const (
+	Primary 	= 0
+	Backup	= 1
+)
+
+
 
 func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode string, id string) {
 
-	var programtype = 1 //0 is primary, 1 is backup
+	var programtype = Backup
 
 	data, _ := os.ReadFile(backupFilePath)
 	var pid string
-	// MULIGENS SE PÅ EN FIX PÅ DETTE ???
+
 	// BACKUP MÅ OGSÅ FØRSØKE MORD PÅ PRIMARY VED OVERTAKELSE/KUPP
 
 	//data := []byte{0, 0, 0, 0}
@@ -29,16 +36,15 @@ func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode strin
 
 	for {
 		switch programtype {
-		case 0:
+		case Primary:
 			conn, err := net.Dial(proto, addrPpBackup)
 			conn.Write([]byte(strconv.Itoa(os.Getpid())))
 			if err == nil {
 				conn.Close()
 			}
-		case 1:
+		case Backup:
 			if checkMaster(proto, addrPpBackup) {
 				conn, _ := net.ListenPacket(proto, addrPpBackup)
-	
 				conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 				buf := make([]byte, 1024)
 				num_of_bytes, _, _ := conn.ReadFrom(buf)
@@ -46,12 +52,12 @@ func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode strin
 				fmt.Println("My master is " + pid)
 				conn.Close()
 			} else {
-				programtype = 0
+				exec.Command("gnome-terminal", "--", "kill", "-TERM", pid).Run() //opens a new window so might be messy
+				programtype = Primary
 				data, _ := os.ReadFile(backupFilePath)
 				if data == nil {
 					data = []byte{0, 0, 0, 0}
 				}
-
 				go fsm.Statemachine(proto, addrFsmPp, data, id)
 				exec.Command("gnome-terminal", "--", "go", "run", "./main.go", mode, id).Run()
 			}
