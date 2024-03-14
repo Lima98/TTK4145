@@ -22,6 +22,7 @@ const (
 type OrderState int
 
 const (
+	Unknown    = -1
 	Completed  = 0
 	Unassigned = 1
 	Assigned   = 2
