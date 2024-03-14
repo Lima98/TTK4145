@@ -74,9 +74,19 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 		elevator.Dir = elevio.MD_Down
 		elevator.Behaviour = elev.EB_Moving
 	}
+
+	go SendAllTheTime(worldView, elevator, worldViewTx)
+
+	//var m = sync.Mutex{}
+
 	for {
-		/////////////////// NETWORK STUFF
+		fmt.Println("---------------------------------------------------------------")
+		fmt.Println("---------------------------------------------------------------")
+		requests.PrintRequests(elevator)
+		elev.PrintBehaviour(elevator)
+
 		select {
+		// NETWORK
 		case a := <-peerUpdateCh:
 			fmt.Println("PEER UPDATE")
 			fmt.Println(a) // DEtte må vi få sett på mtp. orderefordeling
@@ -144,12 +154,16 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 				}
 			}
 
+			//m.Unlock()
+
 			fmt.Println("UPDATED WORLVIEW: ")
 			fmt.Println(worldView.Orders)
 			hallAssignments := hra.HallRequestAssigner(worldView.Orders, worldView.Elevators, peerList)
 
 			fmt.Println("HALL ASSIGNMENTS:")
 			fmt.Println(hallAssignments)
+
+			// // Må endres når hall assigner er implementert
 
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
@@ -165,30 +179,7 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 
 			SetAllLights(worldView, elevator)
 
-			pair := requests.Requests_chooseDirection(elevator)
-			elevator.Dir = pair.Dir
-			elevator.Behaviour = pair.Behaviour
-
-			switch elevator.Behaviour {
-			case elev.EB_DoorOpen:
-				elevio.SetDoorOpenLamp(true)
-				openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
-				elevator = requests.Requests_clearAtCurrentFloor(elevator)
-				SendRequestsToBackup(elevator, proto, addr, backupFilePath)
-				faultTimer.Reset(elev.FAULT_TIMEOUT)
-			case elev.EB_Moving:
-				elevio.SetMotorDirection(elevator.Dir)
-				faultTimer.Reset(elev.FAULT_TIMEOUT)
-
-			case elev.EB_Idle:
-				faultTimer.Reset(elev.FAULT_TIMEOUT)
-			}
-
-			// legg inn valg av retning
-		}
-
-		//////////////////////////// SINGLE ELEVATOR
-		select {
+		// ********** SINGLE ELEVATOR FSM *****************************************
 		case a := <-buttons:
 			switch elevator.Behaviour {
 			case elev.EB_DoorOpen:
@@ -227,10 +218,11 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 					elevator.Requests[a.Floor][a.Button] = true
 					SendRequestsToBackup(elevator, proto, addr, backupFilePath)
 				} else {
-					worldView.Orders[a.Floor][a.Button].Order = elev.Unassigned 
+					worldView.Orders[a.Floor][a.Button].Order = elev.Unassigned // her oppdaterte vi requests før
+					// elevator.Requests[a.Floor][a.Button] = true
 				}
 
-		
+				// MULIG VI IKKE FÅR EN OPPDATERT REQUESTS HER FORDI VI IKKE LENGER OPPDATERE REQUESTS I ELSE (rett over)
 				pair := requests.Requests_chooseDirection(elevator)
 				elevator.Dir = pair.Dir
 				elevator.Behaviour = pair.Behaviour
@@ -350,9 +342,11 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 				fmt.Println("##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##")
 			}
 
-		} // end of single e select
-	}
+		default:
+			fmt.Println(":)")
 
+		}
+	}
 }
 
 func AreOrdersEmpty(worldView wv.WorldView, e elev.Elevator) bool {
@@ -380,6 +374,8 @@ func SendAllTheTime(worldView wv.WorldView, elevator elev.Elevator, worldViewTx 
 	}
 	worldViewTx <- wvMsg
 }
+
+
 
 func SetAllLights(worldView wv.WorldView, e elev.Elevator) {
 	for floor := 0; floor < elev.N_FLOORS; floor++ {
