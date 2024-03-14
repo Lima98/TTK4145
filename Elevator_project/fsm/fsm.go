@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-func Statemachine(proto string, addr string, cabOrders []byte, id string) {
+func Statemachine(proto string, addr string, cabOrders []byte, id string, backupFilePath string) {
 
 	buttons := make(chan elevio.ButtonEvent)
 	floors := make(chan int)
@@ -35,23 +35,23 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 	go network.Network(worldViewTx, worldViewRx, peerUpdateCh, id)
 
 	var elevator = elev.Elevator{
-		Floor: 1,
+		Floor:      1,
 		Dir:        elevio.MD_Stop,
 		Behaviour:  elev.EB_Idle,
 		Obstructed: false,
 		ID:         id}
 
 	var worldView = wv.WorldView{}
-	worldView.Orders = [elev.N_FLOORS][elev.N_BUTTONS - 1]int{}
+	worldView.Orders = [elev.N_FLOORS][elev.N_BUTTONS - 1]wv.Order{}
 	worldView.Elevators = make(map[string]elev.Elevator)
 	worldView.Elevators[id] = elevator
 
 	var peerList []string
-	
 
 	for i := 0; i < elev.N_FLOORS; i++ {
 		for j := 0; j < elev.N_BUTTONS-1; j++ {
-			worldView.Orders[i][j] = elev.Completed
+			worldView.Orders[i][j].Order = elev.Completed
+			worldView.Orders[i][j].ElevatorsThatKnow = make(map[string]bool)
 		}
 	} // legg inn sjekk for a kun riktig heis kan sette til completed
 
@@ -66,7 +66,6 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 	openDoorTimer := time.NewTimer(1000 * time.Second)
 	faultTimer := time.NewTimer(1000 * time.Second)
 
-	
 	select {
 	case <-floors:
 	default:
@@ -75,16 +74,13 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 		elevator.Behaviour = elev.EB_Moving
 	}
 
-	go SendAllTheTime(worldView,elevator,worldViewTx)
-	
-	
+	go SendAllTheTime(worldView, elevator, worldViewTx)
+
 	for {
 		fmt.Println("---------------------------------------------------------------")
 		fmt.Println("---------------------------------------------------------------")
 		requests.PrintRequests(elevator)
 		elev.PrintBehaviour(elevator)
-
-		SendRequestsToBackup(elevator, proto, addr)
 
 		select {
 		// NETWORK
@@ -94,42 +90,56 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 			fmt.Println("-")
 			peerList = a.Peers
 
-		case a := <- worldViewRx:
+		case a := <-worldViewRx:
+			worldView.Elevators[a.ID] = a.ElevatorState //Burde ha noe kontroll?
+
 			fmt.Print("WORLDVIEW RECEIVED: ")
 			fmt.Println(a)
 			//if a.ID == id {break}
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
-					switch worldView.Orders[i][j] {
+					switch worldView.Orders[i][j].Order {
+					case elev.Completed:
+						switch a.Orders[i][j].Order {
+						case elev.Unassigned:
+							worldView.Orders[i][j].Order = a.Orders[i][j].Order
+							//worldView.Orders[i][j].ElevatorsThatKnow = a.Orders[i][j].ElevatorsThatKnow
+							fmt.Println("Elevator " + id + " updated worldview from Completed to Unassigned.")
+						case elev.Assigned:
+							worldView.Orders[i][j].Order = a.Orders[i][j].Order
+							worldView.Orders[i][j].ElevatorsThatKnow = a.Orders[i][j].ElevatorsThatKnow
+							fmt.Println("Elevator " + id + " updated worldview from Completed to Assigned.")
+						case elev.Completed:
+						}
 					case elev.Unassigned:
-						switch a.Orders[i][j] {
-							case elev.Unassigned:
-							case elev.Assigned:
-								worldView.Orders[i][j] = a.Orders[i][j]
-								fmt.Println("Elevator " + id + " updated worldview from Unassigned to Assigned.")
-							case elev.Completed:
+						switch a.Orders[i][j].Order {
+						case elev.Unassigned:
+						case elev.Assigned:
+							worldView.Orders[i][j].Order = a.Orders[i][j].Order
+							worldView.Orders[i][j].ElevatorsThatKnow = a.Orders[i][j].ElevatorsThatKnow
+							fmt.Println("Elevator " + id + " updated worldview from Unassigned to Assigned.")
+						case elev.Completed:
 						}
 					case elev.Assigned:
-						switch a.Orders[i][j] {
-							case elev.Unassigned:
-							case elev.Assigned:
-							case elev.Completed:
-								for i := 0; i < elev.N_ELEVATORS; i++ {
-									//Denne må fikses til å gå gjennom peerlista
-									//if worldView.Elevators[idToString[strconv.Itoa(i)]].Requests[i][j] {
-										//worldView.Orders[i][j] = a.Orders[i][j]
-									//}
+						switch a.Orders[i][j].Order {
+						case elev.Unassigned:
+						case elev.Assigned:
+						case elev.Completed:
+							for k := 0; k < len(peerList); k++ {
+								if !worldView.Orders[i][j].ElevatorsThatKnow[peerList[k]] {
+									fmt.Println("entered break if statement")
+									break
 								}
-								fmt.Println("Elevator " + id + " updated worldview from Assigned to Completed.")
+							}
+							worldView.Orders[i][j].Order = a.Orders[i][j].Order
+							fmt.Println("Elevator " + id + " updated worldview from Assigned to Completed.")
+
+							worldView.Orders[i][j].ElevatorsThatKnow = make(map[string]bool)
+							fmt.Println("Created new map empty  ")
+							fmt.Println(worldView.Orders[i][j].ElevatorsThatKnow)
+
 						}
-					case elev.Completed:
-						switch a.Orders[i][j] {
-							case elev.Unassigned:
-								worldView.Orders[i][j] = a.Orders[i][j]
-								fmt.Println("Elevator " + id + " updated worldview from Completed to Unassigned.")
-							case elev.Assigned:
-							case elev.Completed:
-						}
+
 					}
 				}
 			}
@@ -145,15 +155,16 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
 					elevator.Requests[i][j] = hallAssignments[elevator.ID][i][j]
+					worldView.Orders[i][j].ElevatorsThatKnow[elevator.ID] = true
 					if hallAssignments[elevator.ID][i][j] {
-						worldView.Orders[i][j] = elev.Assigned
+						worldView.Orders[i][j].Order = elev.Assigned
 					}
 				}
 			}
-			fmt.Println("Elevator " + id +" has requests")
+			fmt.Println("Elevator " + id + " has requests")
 			fmt.Print(elevator.Requests)
 
-			SetAllLights(worldView, elevator) 
+			SetAllLights(worldView, elevator)
 
 		case a := <-buttons:
 			switch elevator.Behaviour {
@@ -163,10 +174,12 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 				} else {
 					if a.Button == elevio.BT_Cab {
 						elevator.Requests[a.Floor][a.Button] = true
+						SendRequestsToBackup(elevator, proto, addr, backupFilePath)
 					} else {
-						worldView.Orders[a.Floor][a.Button] = elev.Unassigned
+						worldView.Orders[a.Floor][a.Button].Order = elev.Unassigned
 					}
-					wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
+					wvMsg := wv.WorldViewMsg{
+						Orders:        worldView.Orders,
 						ID:            elevator.ID,
 						ElevatorState: elevator}
 					worldViewTx <- wvMsg
@@ -176,10 +189,12 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 				faultTimer.Reset(elev.FAULT_TIMEOUT)
 				if a.Button == elevio.BT_Cab {
 					elevator.Requests[a.Floor][a.Button] = true
+					SendRequestsToBackup(elevator, proto, addr, backupFilePath)
 				} else {
-					worldView.Orders[a.Floor][a.Button] = elev.Unassigned
+					worldView.Orders[a.Floor][a.Button].Order = elev.Unassigned
 				}
-				wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
+				wvMsg := wv.WorldViewMsg{
+					Orders:        worldView.Orders,
 					ID:            elevator.ID,
 					ElevatorState: elevator}
 				worldViewTx <- wvMsg
@@ -187,13 +202,10 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 			case elev.EB_Idle:
 				if a.Button == elevio.BT_Cab {
 					elevator.Requests[a.Floor][a.Button] = true
+					SendRequestsToBackup(elevator, proto, addr, backupFilePath)
 				} else {
-					worldView.Orders[a.Floor][a.Button] = elev.Unassigned
+					worldView.Orders[a.Floor][a.Button].Order = elev.Unassigned
 				}
-				wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
-					ID:            elevator.ID,
-					ElevatorState: elevator}
-				worldViewTx <- wvMsg
 
 				pair := requests.Requests_chooseDirection(elevator)
 				elevator.Dir = pair.Dir
@@ -204,15 +216,22 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 					elevio.SetDoorOpenLamp(true)
 					openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
 					elevator = requests.Requests_clearAtCurrentFloor(elevator)
-
+					SendRequestsToBackup(elevator, proto, addr, backupFilePath)
+					faultTimer.Reset(elev.FAULT_TIMEOUT)
 				case elev.EB_Moving:
 					elevio.SetMotorDirection(elevator.Dir)
+					faultTimer.Reset(elev.FAULT_TIMEOUT)
 
 				case elev.EB_Idle:
 					faultTimer.Reset(elev.FAULT_TIMEOUT)
 				}
+
+				wvMsg := wv.WorldViewMsg{
+					Orders:        worldView.Orders,
+					ID:            elevator.ID,
+					ElevatorState: elevator}
+				worldViewTx <- wvMsg
 			}
-			// skal kanskje bort når vi har et bestillingssystem
 
 		case elevator.Floor = <-floors:
 			elevio.SetFloorIndicator(elevator.Floor)
@@ -223,23 +242,37 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 					elevio.SetMotorDirection(elevio.MD_Stop)
 					elevio.SetDoorOpenLamp(true)
 					elevator = requests.Requests_clearAtCurrentFloor(elevator)
+					worldView.Orders = wv.Orders_clearAtCurrentFloor(worldView, elevator).Orders
 					openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
 					//SetAllLights(elevator)
 					elevator.Behaviour = elev.EB_DoorOpen
 				}
+				wvMsg := wv.WorldViewMsg{
+					Orders:        worldView.Orders,
+					ID:            elevator.ID,
+					ElevatorState: elevator,
+				}
+				worldViewTx <- wvMsg
 			}
 
 		case a := <-obstruction:
-			wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
+			elevator.Obstructed = a
+			wvMsg := wv.WorldViewMsg{
+				Orders:        worldView.Orders,
 				ID:            elevator.ID,
 				ElevatorState: elevator,
 				Fault:         a}
 			worldViewTx <- wvMsg
-			elevator.Obstructed = a
 
 		case a := <-stop:
 			elevio.SetStopLamp(a)
 			elevio.SetMotorDirection(elevio.MD_Stop)
+			wvMsg := wv.WorldViewMsg{
+				Orders:        worldView.Orders,
+				ID:            elevator.ID,
+				ElevatorState: elevator,
+				Fault:         a}
+			worldViewTx <- wvMsg
 
 		case <-openDoorTimer.C:
 			fmt.Println("Doortimer has timed out")
@@ -265,6 +298,7 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 					openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
 					elevio.SetDoorOpenLamp(true)
 					elevator = requests.Requests_clearAtCurrentFloor(elevator)
+					SendRequestsToBackup(elevator, proto, addr, backupFilePath)
 					//SetAllLights(elevator)
 				case elev.EB_Moving:
 					elevio.SetDoorOpenLamp(false)
@@ -274,11 +308,12 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 					elevio.SetMotorDirection(elevator.Dir)
 				}
 			}
+
 		case <-faultTimer.C:
 
 			if AreOrdersEmpty(worldView, elevator) {
 				faultTimer.Reset(elev.FAULT_TIMEOUT)
-			}else{
+			} else {
 				pid := strconv.Itoa(os.Getpid())
 				exec.Command("gnome-terminal", "--", "kill", "-TERM", pid).Run() //opens a new window so might be messy
 				fmt.Println("##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##")
@@ -290,16 +325,15 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string) {
 				fmt.Println("Fault is set to", wvMsg.Fault)
 				fmt.Println("##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##")
 			}
-			
 
 		}
 	}
 }
 
-func AreOrdersEmpty(worldView wv.WorldView, e elev.Elevator) bool{
+func AreOrdersEmpty(worldView wv.WorldView, e elev.Elevator) bool {
 	for i := 0; i < elev.N_FLOORS; i++ {
 		for j := 0; j < elev.N_BUTTONS-1; j++ {
-			if worldView.Orders[i][j] < elev.Completed {
+			if worldView.Orders[i][j].Order < elev.Completed {
 				return false
 			}
 		}
@@ -312,9 +346,10 @@ func AreOrdersEmpty(worldView wv.WorldView, e elev.Elevator) bool{
 	return true
 }
 
-func SendAllTheTime(worldView wv.WorldView, elevator elev.Elevator, worldViewTx chan wv.WorldViewMsg ){
+func SendAllTheTime(worldView wv.WorldView, elevator elev.Elevator, worldViewTx chan wv.WorldViewMsg) {
 	time.Sleep(100 * time.Millisecond)
-	wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
+	wvMsg := wv.WorldViewMsg{
+		Orders:        worldView.Orders,
 		ID:            elevator.ID,
 		ElevatorState: elevator,
 	}
@@ -324,20 +359,20 @@ func SendAllTheTime(worldView wv.WorldView, elevator elev.Elevator, worldViewTx 
 func SetAllLights(worldView wv.WorldView, e elev.Elevator) {
 	for floor := 0; floor < elev.N_FLOORS; floor++ {
 		for btn := 0; btn < elev.N_BUTTONS-1; btn++ {
-			if worldView.Orders[floor][btn] == elev.Assigned {
+			if worldView.Orders[floor][btn].Order == elev.Assigned {
 				elevio.SetButtonLamp(elevio.ButtonType(btn), floor, true)
-			}else{
+			} else {
 				elevio.SetButtonLamp(elevio.ButtonType(btn), floor, false)
 			}
 		}
 	}
 	for floor := 0; floor < elev.N_FLOORS; floor++ {
-			elevio.SetButtonLamp(elevio.ButtonType(elevio.BT_Cab), floor, e.Requests[floor][elevio.BT_Cab])
+		elevio.SetButtonLamp(elevio.ButtonType(elevio.BT_Cab), floor, e.Requests[floor][elevio.BT_Cab])
 
 	}
 }
 
-func SendRequestsToBackup(e elev.Elevator, proto string, addr string) {
+func SendRequestsToBackup(e elev.Elevator, proto string, addr string, backupFilePath string) {
 
 	var cabOrder = []byte{0, 0, 0, 0} // Kan vi gjøre dette basert på numfloors?
 
@@ -349,7 +384,7 @@ func SendRequestsToBackup(e elev.Elevator, proto string, addr string) {
 		}
 	}
 
-	os.WriteFile("./autorestart/cab_orders.txt", cabOrder, 0644)
+	os.WriteFile(backupFilePath, cabOrder, 0644)
 }
 
 func ReceiveRequestsFromBackup(e *elev.Elevator, proto string, addr string) {

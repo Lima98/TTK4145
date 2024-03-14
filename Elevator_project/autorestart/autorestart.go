@@ -10,18 +10,14 @@ import (
 	"time"
 )
 
-const backupFilePath = "./autorestart/cab_orders.txt"
-
-
 type ProgramType int
+
 const (
-	Primary 	= 0
-	Backup	= 1
+	Primary = 0
+	Backup  = 1
 )
 
-
-
-func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode string, id string) {
+func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode string, id string, backupFilePath string) {
 
 	var programtype = Backup
 
@@ -58,7 +54,7 @@ func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode strin
 				if data == nil {
 					data = []byte{0, 0, 0, 0}
 				}
-				go fsm.Statemachine(proto, addrFsmPp, data, id)
+				go fsm.Statemachine(proto, addrFsmPp, data, id, backupFilePath)
 				exec.Command("gnome-terminal", "--", "go", "run", "./main.go", mode, id).Run()
 			}
 		}

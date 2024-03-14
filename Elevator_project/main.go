@@ -10,6 +10,8 @@ import (
 const proto, addrFsmPp = "udp", "localhost:20022"
 const addrPpBackup = "localhost:30022"
 
+const backupFilePath = "./autorestart/cab_orders.txt"
+
 func main() {
 
 	var id string
@@ -25,18 +27,18 @@ func main() {
 		switch id {
 		case "0":
 			elevio.Init("localhost:15657", numFloors)
-			go autorestart.ProcessPair(proto, "localhost:20022", "localhost:30022", mode, id)
+			go autorestart.ProcessPair(proto, "localhost:20022", "localhost:30022", mode, id, backupFilePath)
 		case "1":
 			elevio.Init("localhost:15658", numFloors)
-			go autorestart.ProcessPair(proto, "localhost:20023", "localhost:30023", mode, id)
+			go autorestart.ProcessPair(proto, "localhost:20023", "localhost:30023", mode, id, backupFilePath)
 		case "2":
 			elevio.Init("localhost:15659", numFloors)
-			go autorestart.ProcessPair(proto, "localhost:20024", "localhost:30024", mode, id)
+			go autorestart.ProcessPair(proto, "localhost:20024", "localhost:30024", mode, id, backupFilePath)
 		}
 	}
 	if mode == "physical" {
 		elevio.Init("localhost:15657", numFloors)
-		go autorestart.ProcessPair(proto, "localhost:20022", "localhost:30022", mode, id)
+		go autorestart.ProcessPair(proto, "localhost:20022", "localhost:30022", mode, id, backupFilePath)
 	}
 
 	var d elevio.MotorDirection = elevio.MD_Stop

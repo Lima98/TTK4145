@@ -3,6 +3,7 @@ package hra
 import (
 	elevio "Elevator_project/driver-go/elevio"
 	elev "Elevator_project/elevator"
+	wv "Elevator_project/worldviewmessage"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -24,7 +25,7 @@ type HRAInput struct {
 	States       map[string]HRAElevState `json:"states"`
 }
 
-func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevators map[string]elev.Elevator, peers []string) map[string][][2]bool {
+func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]wv.Order, Elevators map[string]elev.Elevator, peers []string) map[string][][2]bool {
 
 	hraExecutable := ""
 	switch runtime.GOOS {
@@ -46,11 +47,11 @@ func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevator
 	directionToString[elevio.MD_Down] = "down"
 	directionToString[elevio.MD_Stop] = "stop"
 
-	HallRequestsTemp := [elev.N_FLOORS][2]bool{}
+	HallRequestsTemp := [elev.N_FLOORS][elev.N_BUTTONS - 1]bool{}
 
 	for i := 0; i < elev.N_FLOORS; i++ {
 		for j := 0; j < elev.N_BUTTONS-1; j++ {
-			if orders[i][j] < elev.Completed {
+			if orders[i][j].Order > elev.Completed {
 				HallRequestsTemp[i][j] = true
 			} else {
 				HallRequestsTemp[i][j] = false
@@ -63,7 +64,7 @@ func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevator
 
 	for i := 0; i < len(peers); i++ {
 		for j := 0; j < elev.N_FLOORS; j++ {
-			CabRequestsTemp[i][j] = Elevators[peers[i]].Requests[j][2]
+			CabRequestsTemp[i][j] = Elevators[peers[i]].Requests[j][elevio.BT_Cab]
 		}
 	}
 
@@ -72,7 +73,7 @@ func HallRequestAssigner(orders [elev.N_FLOORS][elev.N_BUTTONS - 1]int, Elevator
 	for i := 0; i < len(peers); i++ {
 		if Elevators[peers[i]].Obstructed {
 			StatesTemp[peers[i]] = HRAElevState{}
-		}else{
+		} else {
 			StatesTemp[peers[i]] = HRAElevState{
 				Behavior:    behaviorToString[Elevators[peers[i]].Behaviour],
 				Floor:       Elevators[peers[i]].Floor,
