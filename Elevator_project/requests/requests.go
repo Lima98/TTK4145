@@ -42,7 +42,7 @@ func Requests_here(e elev.Elevator) bool {
 	return false
 }
 
-func Requests_chooseDirection(e elev.Elevator) DirBehaviourPair {
+func ChooseDirection(e elev.Elevator) DirBehaviourPair {
 	switch e.Dir {
 	case elevio.MD_Up:
 		switch {
@@ -82,7 +82,7 @@ func Requests_chooseDirection(e elev.Elevator) DirBehaviourPair {
 	}
 }
 
-func Requests_shouldStop(e elev.Elevator) bool {
+func ShouldStop(e elev.Elevator) bool {
 	switch e.Dir {
 	case elevio.MD_Down:
 		return bool(e.Requests[e.Floor][elevio.BT_HallDown] ||
@@ -99,13 +99,13 @@ func Requests_shouldStop(e elev.Elevator) bool {
 	}
 }
 
-func Requests_shouldClearImmediately(e elev.Elevator, btn_floor int, btn_type elevio.ButtonType) bool {
+func ShouldClearImmediately(e elev.Elevator, btn_floor int, btn_type elevio.ButtonType) bool {
 	return bool(e.Floor == btn_floor && ((e.Dir == elevio.MD_Up && btn_type == elevio.BT_HallUp) ||
 		(e.Dir == elevio.MD_Down && btn_type == elevio.BT_HallDown) ||
 		e.Dir == elevio.MD_Stop || btn_type == elevio.BT_Cab))
 }
 
-func Requests_clearAtCurrentFloor(e elev.Elevator) elev.Elevator {
+func ClearAtCurrentFloor(e elev.Elevator) elev.Elevator {
 	e.Requests[e.Floor][elevio.BT_Cab] = false
 	switch e.Dir {
 	case elevio.MD_Up:

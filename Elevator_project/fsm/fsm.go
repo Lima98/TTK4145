@@ -9,7 +9,6 @@ import (
 	"Elevator_project/requests"
 	wv "Elevator_project/worldviewmessage"
 	"fmt"
-	"net"
 	"os"
 	"os/exec"
 	"strconv"
@@ -75,21 +74,19 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 		elevator.Behaviour = elev.EB_Moving
 	}
 
-
 	for {
-
 
 		select {
 		// NETWORK
 		case a := <-peerUpdateCh:
 			fmt.Println("PEER UPDATE")
-			fmt.Println(a) 
+			fmt.Println(a)
 			fmt.Println("-")
 			peerList = a.Peers
 
 		case a := <-worldViewRx:
-		
-			worldView.Elevators[a.ID] = a.ElevatorState 
+
+			worldView.Elevators[a.ID] = a.ElevatorState
 
 			fmt.Print("WORLDVIEW RECEIVED: ")
 			fmt.Println(a.Orders)
@@ -158,12 +155,11 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 			fmt.Print(elevator.Requests)
 			SetAllLights(worldView, elevator)
 
-			
 		// ********** SINGLE ELEVATOR FSM *****************************************
 		case a := <-buttons:
 			switch elevator.Behaviour {
 			case elev.EB_DoorOpen:
-				if requests.Requests_shouldClearImmediately(elevator, a.Floor, a.Button) {
+				if requests.ShouldClearImmediately(elevator, a.Floor, a.Button) {
 					openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
 				} else {
 					if a.Button == elevio.BT_Cab {
@@ -201,7 +197,7 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 					worldView.Orders[a.Floor][a.Button].Order = elev.Unassigned
 				}
 
-				pair := requests.Requests_chooseDirection(elevator)
+				pair := requests.ChooseDirection(elevator)
 				elevator.Dir = pair.Dir
 				elevator.Behaviour = pair.Behaviour
 
@@ -209,7 +205,7 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 				case elev.EB_DoorOpen:
 					elevio.SetDoorOpenLamp(true)
 					openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
-					elevator = requests.Requests_clearAtCurrentFloor(elevator)
+					elevator = requests.ClearAtCurrentFloor(elevator)
 					SendRequestsToBackup(elevator, proto, addr, backupFilePath)
 					faultTimer.Reset(elev.FAULT_TIMEOUT)
 				case elev.EB_Moving:
@@ -233,10 +229,10 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 
 			switch elevator.Behaviour {
 			case elev.EB_Moving:
-				if requests.Requests_shouldStop(elevator) {
+				if requests.ShouldStop(elevator) {
 					elevio.SetMotorDirection(elevio.MD_Stop)
 					elevio.SetDoorOpenLamp(true)
-					elevator = requests.Requests_clearAtCurrentFloor(elevator)
+					elevator = requests.ClearAtCurrentFloor(elevator)
 					worldView.Orders = wv.Orders_clearAtCurrentFloor(worldView, elevator).Orders
 					openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
 					elevator.Behaviour = elev.EB_DoorOpen
@@ -279,7 +275,7 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 
 			switch elevator.Behaviour {
 			case elev.EB_DoorOpen:
-				pair := requests.Requests_chooseDirection(elevator)
+				pair := requests.ChooseDirection(elevator)
 				elevator.Dir = pair.Dir
 				elevator.Behaviour = pair.Behaviour
 				fmt.Print("New direction: ")
@@ -291,7 +287,7 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 				case elev.EB_DoorOpen:
 					openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
 					elevio.SetDoorOpenLamp(true)
-					elevator = requests.Requests_clearAtCurrentFloor(elevator)
+					elevator = requests.ClearAtCurrentFloor(elevator)
 					SendRequestsToBackup(elevator, proto, addr, backupFilePath)
 					//SetAllLights(elevator)
 				case elev.EB_Moving:
@@ -336,17 +332,6 @@ func AreOrdersEmpty(worldView wv.WorldView, e elev.Elevator) bool {
 	return true
 }
 
-func SendAllTheTime(worldView wv.WorldView, elevator elev.Elevator, worldViewTx chan wv.WorldViewMsg) {
-	time.Sleep(100 * time.Millisecond)
-	wvMsg := wv.WorldViewMsg{
-		Orders:        worldView.Orders,
-		ID:            elevator.ID,
-		ElevatorState: elevator,
-	}
-	worldViewTx <- wvMsg
-	SetAllLights(worldView, elevator)
-}
-
 func SetAllLights(worldView wv.WorldView, e elev.Elevator) {
 	for floor := 0; floor < elev.N_FLOORS; floor++ {
 		for btn := 0; btn < elev.N_BUTTONS-1; btn++ {
@@ -365,7 +350,7 @@ func SetAllLights(worldView wv.WorldView, e elev.Elevator) {
 
 func SendRequestsToBackup(e elev.Elevator, proto string, addr string, backupFilePath string) {
 
-	var cabOrder = []byte{0, 0, 0, 0} 
+	var cabOrder = []byte{0, 0, 0, 0}
 
 	for i := 0; i < elev.N_FLOORS; i++ {
 		if e.Requests[i][2] {
@@ -376,25 +361,4 @@ func SendRequestsToBackup(e elev.Elevator, proto string, addr string, backupFile
 	}
 
 	os.WriteFile(backupFilePath, cabOrder, 0644)
-}
-
-func ReceiveRequestsFromBackup(e *elev.Elevator, proto string, addr string) {
-	conn, err := net.ListenPacket(proto, addr)
-
-
-	buf := make([]byte, 1024)
-	num_of_bytes, _, _ := conn.ReadFrom(buf)
-	fmt.Print("FSM receive from backup: ")
-	fmt.Println(num_of_bytes)
-
-	for i := 0; i < elev.N_FLOORS; i++ {
-		if buf[i] == 1 {
-			e.Requests[i][2] = true
-		} else {
-			e.Requests[i][2] = false
-		}
-	}
-	if err == nil {
-		conn.Close()
-	}
 }
