@@ -75,15 +75,15 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 		elevator.Behaviour = elev.EB_Moving
 	}
 
-	go SendAllTheTime(worldView, elevator, worldViewTx)
+	//go SendAllTheTime(worldView, elevator, worldViewTx)
 
 	//var m = sync.Mutex{}
 
 	for {
-		fmt.Println("---------------------------------------------------------------")
+		/* fmt.Println("---------------------------------------------------------------")
 		fmt.Println("---------------------------------------------------------------")
 		requests.PrintRequests(elevator)
-		elev.PrintBehaviour(elevator)
+		elev.PrintBehaviour(elevator) */
 
 		select {
 		// NETWORK
@@ -99,7 +99,9 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 
 			fmt.Print("WORLDVIEW RECEIVED: ")
 			fmt.Println(a.Orders)
-			//if a.ID == id {break}
+			/* if a.ID == id {
+				break
+			} */
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
 					switch worldView.Orders[i][j].Order {
@@ -176,9 +178,7 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 			}
 			fmt.Println("Elevator " + id + " has requests")
 			fmt.Print(elevator.Requests)
-
 			SetAllLights(worldView, elevator)
-
 		// ********** SINGLE ELEVATOR FSM *****************************************
 		case a := <-buttons:
 			switch elevator.Behaviour {
@@ -248,6 +248,7 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 					ElevatorState: elevator}
 				worldViewTx <- wvMsg
 			}
+			SetAllLights(worldView, elevator)
 
 		case elevator.Floor = <-floors:
 			elevio.SetFloorIndicator(elevator.Floor)
@@ -341,10 +342,6 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 				fmt.Println("Fault is set to", wvMsg.Fault)
 				fmt.Println("##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##")
 			}
-
-		default:
-			fmt.Println(":)")
-
 		}
 	}
 }
@@ -373,9 +370,8 @@ func SendAllTheTime(worldView wv.WorldView, elevator elev.Elevator, worldViewTx 
 		ElevatorState: elevator,
 	}
 	worldViewTx <- wvMsg
+	SetAllLights(worldView, elevator)
 }
-
-
 
 func SetAllLights(worldView wv.WorldView, e elev.Elevator) {
 	for floor := 0; floor < elev.N_FLOORS; floor++ {
