@@ -22,6 +22,7 @@ type WorldView struct {
 	Elevators map[string]elev.Elevator
 }
 
+
 func Orders_clearAtCurrentFloor(wv WorldView, e elev.Elevator) WorldView {
 	if !e.Requests[e.Floor][elevio.BT_HallDown] {
 		wv.Orders[e.Floor][elevio.BT_HallDown].Order = elev.Completed
@@ -30,4 +31,4 @@ func Orders_clearAtCurrentFloor(wv WorldView, e elev.Elevator) WorldView {
 		wv.Orders[e.Floor][elevio.BT_HallUp].Order = elev.Completed
 	}
 	return wv
-}
+} 

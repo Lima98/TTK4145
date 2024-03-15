@@ -75,27 +75,21 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 		elevator.Behaviour = elev.EB_Moving
 	}
 
-	//go SendAllTheTime(worldView, elevator, worldViewTx)
-
-	//var m = sync.Mutex{}
 
 	for {
-		/* fmt.Println("---------------------------------------------------------------")
-		fmt.Println("---------------------------------------------------------------")
-		requests.PrintRequests(elevator)
-		elev.PrintBehaviour(elevator) */
+
 
 		select {
 		// NETWORK
 		case a := <-peerUpdateCh:
 			fmt.Println("PEER UPDATE")
-			fmt.Println(a) // DEtte må vi få sett på mtp. orderefordeling
+			fmt.Println(a) 
 			fmt.Println("-")
 			peerList = a.Peers
 
 		case a := <-worldViewRx:
-			//m.Lock()
-			worldView.Elevators[a.ID] = a.ElevatorState //Burde ha noe kontroll?
+		
+			worldView.Elevators[a.ID] = a.ElevatorState 
 
 			fmt.Print("WORLDVIEW RECEIVED: ")
 			fmt.Println(a.Orders)
@@ -111,26 +105,18 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 					case elev.Completed:
 						switch a.Orders[i][j].Order {
 						case elev.Unassigned:
-							fmt.Println("going from completed to unassigned, ID: " + id)
 							worldView.Orders[i][j].Order = a.Orders[i][j].Order
-							//worldView.Orders[i][j].ElevatorsThatKnow = a.Orders[i][j].ElevatorsThatKnow
-							fmt.Println("Elevator " + id + " updated worldview from Completed to Unassigned.")
 						case elev.Assigned:
-							fmt.Println("going from completed to assigned, ID: " + id)
 							worldView.Orders[i][j].Order = a.Orders[i][j].Order
 							worldView.Orders[i][j].ElevatorsThatKnow = a.Orders[i][j].ElevatorsThatKnow
-							fmt.Println("Elevator " + id + " updated worldview from Completed to Assigned.")
 						case elev.Completed:
-							fmt.Println("going from completed to completed, ID: " + id)
 						}
 					case elev.Unassigned:
 						switch a.Orders[i][j].Order {
 						case elev.Unassigned:
 						case elev.Assigned:
-							fmt.Println("going from unassigned to assigned, ID: " + id)
 							worldView.Orders[i][j].Order = a.Orders[i][j].Order
 							worldView.Orders[i][j].ElevatorsThatKnow = a.Orders[i][j].ElevatorsThatKnow
-							fmt.Println("Elevator " + id + " updated worldview from Unassigned to Assigned.")
 						case elev.Completed:
 						}
 					case elev.Assigned:
@@ -140,15 +126,11 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 						case elev.Completed:
 							for k := 0; k < len(peerList); k++ {
 								if !worldView.Orders[i][j].ElevatorsThatKnow[peerList[k]] {
-									fmt.Println("entered break if statement")
 									break
 								}
 							}
 							worldView.Orders[i][j].Order = a.Orders[i][j].Order
-							fmt.Println("Elevator " + id + " updated worldview from Assigned to Completed.")
-
 							worldView.Orders[i][j].ElevatorsThatKnow = make(map[string]bool)
-							fmt.Println("Created new map empty  ")
 							fmt.Println(worldView.Orders[i][j].ElevatorsThatKnow)
 
 						}
@@ -156,16 +138,12 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 				}
 			}
 
-			//m.Unlock()
-
 			fmt.Println("UPDATED WORLVIEW: ")
 			fmt.Println(worldView.Orders)
 			hallAssignments := hra.HallRequestAssigner(worldView.Orders, worldView.Elevators, peerList)
 
 			fmt.Println("HALL ASSIGNMENTS:")
 			fmt.Println(hallAssignments)
-
-			// // Må endres når hall assigner er implementert
 
 			for i := 0; i < elev.N_FLOORS; i++ {
 				for j := 0; j < elev.N_BUTTONS-1; j++ {
@@ -179,6 +157,8 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 			fmt.Println("Elevator " + id + " has requests")
 			fmt.Print(elevator.Requests)
 			SetAllLights(worldView, elevator)
+
+			
 		// ********** SINGLE ELEVATOR FSM *****************************************
 		case a := <-buttons:
 			switch elevator.Behaviour {
@@ -218,11 +198,9 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 					elevator.Requests[a.Floor][a.Button] = true
 					SendRequestsToBackup(elevator, proto, addr, backupFilePath)
 				} else {
-					worldView.Orders[a.Floor][a.Button].Order = elev.Unassigned // her oppdaterte vi requests før
-					// elevator.Requests[a.Floor][a.Button] = true
+					worldView.Orders[a.Floor][a.Button].Order = elev.Unassigned
 				}
 
-				// MULIG VI IKKE FÅR EN OPPDATERT REQUESTS HER FORDI VI IKKE LENGER OPPDATERE REQUESTS I ELSE (rett over)
 				pair := requests.Requests_chooseDirection(elevator)
 				elevator.Dir = pair.Dir
 				elevator.Behaviour = pair.Behaviour
@@ -261,7 +239,6 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 					elevator = requests.Requests_clearAtCurrentFloor(elevator)
 					worldView.Orders = wv.Orders_clearAtCurrentFloor(worldView, elevator).Orders
 					openDoorTimer.Reset(elev.OPEN_DOOR_TIME)
-					//SetAllLights(elevator)
 					elevator.Behaviour = elev.EB_DoorOpen
 				}
 				wvMsg := wv.WorldViewMsg{
@@ -332,15 +309,12 @@ func Statemachine(proto string, addr string, cabOrders []byte, id string, backup
 				faultTimer.Reset(elev.FAULT_TIMEOUT)
 			} else {
 				pid := strconv.Itoa(os.Getpid())
-				exec.Command("gnome-terminal", "--", "kill", "-TERM", pid).Run() //opens a new window so might be messy
-				fmt.Println("##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##")
+				exec.Command("gnome-terminal", "--", "kill", "-TERM", pid).Run()
 				wvMsg := wv.WorldViewMsg{Orders: worldView.Orders,
 					ID:            elevator.ID,
 					ElevatorState: elevator,
 					Fault:         true}
 				worldViewTx <- wvMsg
-				fmt.Println("Fault is set to", wvMsg.Fault)
-				fmt.Println("##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##\n##")
 			}
 		}
 	}
@@ -391,7 +365,7 @@ func SetAllLights(worldView wv.WorldView, e elev.Elevator) {
 
 func SendRequestsToBackup(e elev.Elevator, proto string, addr string, backupFilePath string) {
 
-	var cabOrder = []byte{0, 0, 0, 0} // Kan vi gjøre dette basert på numfloors?
+	var cabOrder = []byte{0, 0, 0, 0} 
 
 	for i := 0; i < elev.N_FLOORS; i++ {
 		if e.Requests[i][2] {
@@ -407,7 +381,7 @@ func SendRequestsToBackup(e elev.Elevator, proto string, addr string, backupFile
 func ReceiveRequestsFromBackup(e *elev.Elevator, proto string, addr string) {
 	conn, err := net.ListenPacket(proto, addr)
 
-	//conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+
 	buf := make([]byte, 1024)
 	num_of_bytes, _, _ := conn.ReadFrom(buf)
 	fmt.Print("FSM receive from backup: ")

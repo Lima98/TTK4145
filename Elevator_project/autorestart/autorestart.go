@@ -24,10 +24,7 @@ func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode strin
 	data, _ := os.ReadFile(backupFilePath)
 	var pid string
 
-	// BACKUP MÅ OGSÅ FØRSØKE MORD PÅ PRIMARY VED OVERTAKELSE/KUPP
-
-	//data := []byte{0, 0, 0, 0}
-	fmt.Print("FROM THE FILE WE READ: ")
+	fmt.Print("FROM BACKUP FILE WE READ: ")
 	fmt.Println(data)
 
 	for {
@@ -45,10 +42,10 @@ func ProcessPair(proto string, addrFsmPp string, addrPpBackup string, mode strin
 				buf := make([]byte, 1024)
 				num_of_bytes, _, _ := conn.ReadFrom(buf)
 				pid = string(buf[:num_of_bytes])
-				fmt.Println("My master is " + pid)
+				fmt.Println("My primary is " + pid)
 				conn.Close()
 			} else {
-				exec.Command("gnome-terminal", "--", "kill", "-TERM", pid).Run() //opens a new window so might be messy
+				exec.Command("gnome-terminal", "--", "kill", "-TERM", pid).Run()
 				programtype = Primary
 				data, _ := os.ReadFile(backupFilePath)
 				if data == nil {
